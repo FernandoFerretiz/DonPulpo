@@ -1,0 +1,42 @@
+services:
+  apache:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: donpulpo_apps
+    user: "1000:1000"
+    ports:
+      - "802:8080"   # POS
+      - "803:8081"   # RMS
+      - "804:8082"   # Landing
+    volumes:
+      - ./POS:/var/www/html/POS
+      - ./RMS:/var/www/html/RMS
+      - ./landing:/var/www/html/landing
+    working_dir: /var/www/html
+    depends_on:
+      - mysql
+    environment:
+      - APACHE_RUN_USER=#1000
+      - APACHE_RUN_GROUP=#1000
+    mem_limit: 512m
+    cpus: 0.5
+
+  mysql:
+    image: mysql:8.0
+    container_name: donpulpo_db
+    restart: unless-stopped
+    ports:
+      - "3317:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: donpulpo
+      MYSQL_USER: gs
+      MYSQL_PASSWORD: 1234567890a.-
+    volumes:
+      - db_data:/var/lib/mysql
+    mem_limit: 512m
+    cpus: 0.5
+
+volumes:
+  db_data:

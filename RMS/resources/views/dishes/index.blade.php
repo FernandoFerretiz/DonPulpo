@@ -1,0 +1,61 @@
+@extends('layouts.app')
+@section('title', 'Platillos — Don Pulpo RMS')
+@section('content')
+<div class="d-flex justify-content-between align-items-center mb-3 mt-2">
+    <h2 class="h4 mb-0">Platillos</h2>
+    <a href="{{ route('dishes.create') }}" class="btn btn-dp">+ Nuevo platillo</a>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Nombre</th>
+                    <th>Categoría</th>
+                    <th>Precio</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($dishes as $dish)
+                <tr>
+                    <td>{{ $dish->id }}</td>
+                    <td>
+                        {{ $dish->name }}
+                        @if($dish->description)
+                            <br><small class="text-muted">{{ Str::limit($dish->description, 60) }}</small>
+                        @endif
+                    </td>
+                    <td>{{ $dish->category?->name ?? '—' }}</td>
+                    <td>${{ number_format($dish->price, 2) }}</td>
+                    <td>
+                        @php
+                            $badgeClass = match($dish->status) {
+                                'active' => 'badge-active',
+                                'temporarily_inactive' => 'badge-tmp',
+                                default => 'badge-inactive',
+                            };
+                        @endphp
+                        <span class="badge {{ $badgeClass }}">{{ $dish->getStatusLabel() }}</span>
+                    </td>
+                    <td>
+                        <a href="{{ route('dishes.edit', $dish) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                        <form action="{{ route('dishes.destroy', $dish) }}" method="POST" class="d-inline"
+                              onsubmit="return confirm('¿Eliminar este platillo?')">
+                            @csrf @method('DELETE')
+                            <button class="btn btn-sm btn-outline-danger">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                @empty
+                <tr><td colspan="6" class="text-center text-muted py-4">No hay platillos registrados.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="mt-3">{{ $dishes->links() }}</div>
+@endsection
