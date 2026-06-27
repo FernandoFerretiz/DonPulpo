@@ -14,7 +14,8 @@ class OrderService
         $items = $data['items'] ?? [];
 
         $subtotal = collect($items)->sum(fn($i) => ($i['unit_price'] ?? 0) * ($i['quantity'] ?? 1));
-        $tax      = round($subtotal * 0.16, 2);
+        // Respect incoming tax (0 when IVA is disabled from the frontend)
+        $tax      = isset($data['tax']) ? round((float) $data['tax'], 2) : round($subtotal * 0.16, 2);
         $tip      = round($data['tip'] ?? 0, 2);
         $total    = round($subtotal + $tax + $tip, 2);
 
@@ -87,7 +88,9 @@ class OrderService
     {
         $order->refresh();
         $subtotal = $order->items()->sum('line_total');
-        $tax      = round($subtotal * 0.16, 2);
+        // Preserve the original tax rate (0% if IVA was disabled when the order was created)
+        $taxRate  = ($order->subtotal > 0) ? ($order->tax / $order->subtotal) : 0.16;
+        $tax      = round($subtotal * $taxRate, 2);
         $total    = round($subtotal + $tax + $order->tip, 2);
 
         $order->update([

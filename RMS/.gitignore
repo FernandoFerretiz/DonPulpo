@@ -1,0 +1,39 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Environment
+.env
+.env.backup
+.env.production
+.env.*.local
+
+# Laravel generated
+/bootstrap/cache/*.php
+/storage/app/private/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/testing/
+/storage/framework/views/
+/storage/logs/
+
+# Build / compiled assets
+/public/build/
+/public/hot
+/public/storage
+
+# Testing
+.phpunit.result.cache
+coverage/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Composer lock is committed intentionally; remove this line if you don't want it
+# composer.lock

@@ -1,0 +1,12 @@
+# Docker volumes / runtime data
+mysql_data/
+redis_data/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
