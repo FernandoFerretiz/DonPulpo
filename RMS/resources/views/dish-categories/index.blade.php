@@ -6,6 +6,17 @@
     <a href="{{ route('dish-categories.create') }}" class="btn btn-dp">+ Nueva categoría</a>
 </div>
 
+<form method="GET" action="{{ route('dish-categories.index') }}" class="mb-3">
+    <div class="input-group" style="max-width:380px;">
+        <input type="search" name="search" class="form-control" placeholder="Buscar categoría…"
+               value="{{ $search ?? '' }}" autocomplete="off">
+        <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+        @if($search)
+            <a href="{{ route('dish-categories.index') }}" class="btn btn-outline-secondary">✕</a>
+        @endif
+    </div>
+</form>
+
 <div class="card shadow-sm border-0">
     <div class="table-responsive">
         <table class="table table-hover mb-0">

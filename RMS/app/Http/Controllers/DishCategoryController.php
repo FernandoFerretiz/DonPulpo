@@ -11,10 +11,15 @@ use Illuminate\View\View;
 
 class DishCategoryController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $categories = DishCategory::withCount('dishes')->orderBy('display_order')->paginate(20);
-        return view('dish-categories.index', compact('categories'));
+        $search = $request->get('search');
+        $categories = DishCategory::withCount('dishes')
+            ->when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
+            ->orderBy('display_order')
+            ->paginate(20)
+            ->withQueryString();
+        return view('dish-categories.index', compact('categories', 'search'));
     }
 
     public function create(): View
