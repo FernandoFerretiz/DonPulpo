@@ -784,5 +784,6 @@ function showToast(msg, type = '') {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 </script>
+@include('partials.session-timeout')
 </body>
 </html>

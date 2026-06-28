@@ -17,6 +17,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // Rutas protegidas
 Route::middleware('auth.rms')->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
+    Route::post('/keep-alive', fn() => response()->noContent())->name('keep-alive');
 
     Route::resource('users',           UserController::class)->except(['show']);
     Route::resource('dish-categories', DishCategoryController::class)->except(['show']);

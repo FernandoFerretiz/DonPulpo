@@ -14,6 +14,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::middleware('auth.pos')->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
+    Route::post('/keep-alive', fn() => response()->noContent())->name('keep-alive');
     Route::get('/home', [HomeController::class, 'index'])->name('home.alt');
     Route::get('/pos', [PosController::class, 'index'])->name('pos');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
