@@ -12,7 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->alias(['auth.rms' => \App\Http\Middleware\AuthenticateRMS::class]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
