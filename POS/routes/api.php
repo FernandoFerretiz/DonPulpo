@@ -20,6 +20,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     // Órdenes
     Route::get('orders', [OrderController::class, 'index']);
     Route::post('orders', [OrderController::class, 'store']);
+    Route::get('orders/active-count', [OrderController::class, 'activeCount']);
     Route::get('orders/{id}', [OrderController::class, 'show']);
     Route::put('orders/{id}', [OrderController::class, 'update']);
     Route::delete('orders/{id}', [OrderController::class, 'destroy']);

@@ -15,6 +15,7 @@ class PosOrder extends Model
         'user_id',
         'customer_name',
         'table_name',
+        'order_type',
         'subtotal',
         'tax',
         'tip',

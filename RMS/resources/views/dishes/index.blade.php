@@ -8,10 +8,10 @@
 
 <div class="card shadow-sm border-0">
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
-                    <th>#</th>
+                    <th style="width:64px"></th>
                     <th>Nombre</th>
                     <th>Categoría</th>
                     <th>Precio</th>
@@ -22,11 +22,20 @@
             <tbody>
                 @forelse($dishes as $dish)
                 <tr>
-                    <td>{{ $dish->id }}</td>
                     <td>
-                        {{ $dish->name }}
+                        @if($dish->image_path)
+                            <img src="{{ asset('storage/' . $dish->image_path) }}" alt="{{ $dish->name }}"
+                                 style="width:52px;height:52px;object-fit:cover;border-radius:10px;border:1px solid #dee2e6;" />
+                        @else
+                            <div style="width:52px;height:52px;border-radius:10px;background:#f2f6f9;display:grid;place-items:center;font-size:22px;color:#adb5bd;">
+                                🍽️
+                            </div>
+                        @endif
+                    </td>
+                    <td>
+                        <div class="fw-semibold">{{ $dish->name }}</div>
                         @if($dish->description)
-                            <br><small class="text-muted">{{ Str::limit($dish->description, 60) }}</small>
+                            <small class="text-muted">{{ Str::limit($dish->description, 70) }}</small>
                         @endif
                     </td>
                     <td>{{ $dish->category?->name ?? '—' }}</td>

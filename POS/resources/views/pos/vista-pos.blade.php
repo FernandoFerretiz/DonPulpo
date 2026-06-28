@@ -102,14 +102,62 @@
     .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 5px rgba(203,131,23,.15); }
     .time-chip { min-height: 52px; display: flex; align-items: center; padding: 0 16px; color: var(--ink-700); font-weight: 750; white-space: nowrap; }
 
-    /* ── KPIs ── */
-    .kpi-card { min-height: 120px; display: flex; align-items: center; gap: 16px; padding: 18px; border-radius: var(--radius-lg); background: rgba(255,255,255,.92); border: 1px solid rgba(200,217,229,.70); box-shadow: var(--shadow); height: 100%; }
-    .kpi-icon { width: 64px; height: 64px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 23px; font-size: 30px; background: linear-gradient(135deg,var(--gold),var(--gold-dark)); color: #fff; }
+    /* ── KPIs (dentro del drawer) ── */
+    .kpi-card { min-height: 110px; display: flex; align-items: center; gap: 16px; padding: 18px; border-radius: var(--radius-lg); background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.14); box-shadow: var(--shadow); }
+    .kpi-icon { width: 58px; height: 58px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 21px; font-size: 28px; background: linear-gradient(135deg,var(--gold),var(--gold-dark)); color: #fff; }
     .kpi-icon.coral { background: linear-gradient(135deg,var(--coral-500),var(--coral-600)); }
     .kpi-icon.blue  { background: linear-gradient(135deg,var(--blue-med),var(--blue-muted)); }
     .kpi-icon.amber { background: linear-gradient(135deg,var(--navy-deep),var(--navy-bg)); color: #fff; }
-    .kpi-card p      { margin: 0 0 4px; color: var(--ink-500); font-size: 14px; font-weight: 780; }
-    .kpi-card strong { display: block; font-size: clamp(21px,2.25vw,29px); letter-spacing: -.035em; }
+    .kpi-card p      { margin: 0 0 4px; color: rgba(255,255,255,.65); font-size: 13px; font-weight: 780; }
+    .kpi-card strong { display: block; color: #fff; font-size: clamp(20px,2.25vw,28px); letter-spacing: -.035em; }
+
+    /* ── KPI Drawer ── */
+    .kpi-backdrop {
+      position: fixed; inset: 0; z-index: 110;
+      background: rgba(1,19,46,.50);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0; pointer-events: none;
+      transition: opacity .28s ease;
+    }
+    .kpi-backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .kpi-drawer {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 120;
+      padding: 20px 20px 24px;
+      background: linear-gradient(160deg, rgba(2,14,31,.96) 0%, rgba(6,38,69,.94) 100%);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(203,131,23,.22);
+      box-shadow: 0 24px 60px rgba(1,19,46,.40);
+      transform: translateY(-105%);
+      transition: transform .32s cubic-bezier(.4,0,.2,1);
+    }
+    .kpi-drawer.open { transform: translateY(0); }
+
+    .kpi-drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .kpi-drawer-title { color: rgba(255,255,255,.80); font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .kpi-drawer-close {
+      width: 40px; height: 40px; border-radius: 12px; border: none;
+      background: rgba(255,255,255,.10); color: rgba(255,255,255,.80);
+      font-size: 20px; cursor: pointer; display: grid; place-items: center;
+      transition: background .15s;
+    }
+    .kpi-drawer-close:hover { background: rgba(255,255,255,.18); }
+
+    /* Botón de estadísticas en topbar */
+    .stats-btn {
+      min-height: 52px; padding: 0 18px; border-radius: 18px;
+      background: var(--navy-deep); border: 1px solid rgba(203,131,23,.30);
+      color: rgba(255,255,255,.88); font-weight: 820; font-size: 15px;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+      transition: background .15s, border-color .15s;
+    }
+    .stats-btn:hover, .stats-btn.active { background: rgba(203,131,23,.15); border-color: var(--gold); color: #fff; }
+    .stats-btn:active { transform: scale(.97); }
 
     /* ── Workspace ── */
     .panel { background: rgba(255,255,255,.94); border: 1px solid rgba(200,217,229,.75); border-radius: var(--radius-xl); box-shadow: var(--shadow); }
@@ -163,6 +211,9 @@
     .qty-btn:active { transform: scale(.96); }
     .qty-number { min-width: 30px; text-align: center; font-weight: 900; font-size: 17px; }
     .line-total { font-weight: 900; font-size: 15px; white-space: nowrap; }
+    .item-notes { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 13px; color: var(--ink-700); background: var(--surface-soft); outline: 0; }
+    .item-notes::placeholder { color: var(--ink-500); opacity: .7; }
+    .item-notes:focus { border-color: var(--gold); background: var(--gold-100); }
 
     /* ── Totals ── */
     .totals { padding: 12px 18px 16px; display: grid; gap: 10px; }
@@ -214,6 +265,17 @@
     .modal-confirm { min-height: 52px; border-radius: 15px; background: linear-gradient(135deg,var(--gold),var(--gold-dark)); color: #fff; font-weight: 900; cursor: pointer; border: none; }
     .modal-confirm:active, .modal-cancel:active { transform: scale(.97); }
 
+    /* ── Selector tipo de orden ── */
+    .order-type-group { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .order-type-btn { min-height: 62px; border-radius: 14px; border: 1.5px solid var(--line); background: #fff; color: var(--ink-700); font-weight: 800; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 13px; transition: border-color .15s, background .15s; }
+    .order-type-btn .ot-icon { font-size: 22px; line-height: 1; }
+    .order-type-btn.active { background: linear-gradient(135deg,var(--gold),var(--gold-dark)); color: #fff; border-color: transparent; box-shadow: 0 8px 18px rgba(203,131,23,.22); }
+    .order-type-btn:active { transform: scale(.96); }
+    .order-type-badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+    .order-type-badge.dine_in  { background: #e0f2fe; color: #0369a1; }
+    .order-type-badge.takeout  { background: #fef9c3; color: #854d0e; }
+    .order-type-badge.delivery { background: #dcfce7; color: #166534; }
+
     /* ── Active orders modal ── */
     .orders-modal-box { width: min(640px,96vw); }
     .order-card { border: 1.5px solid var(--line); border-radius: 18px; padding: 16px 18px; margin-bottom: 10px; cursor: pointer; transition: background .15s, border-color .15s; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
@@ -251,7 +313,7 @@
 
     /* ── Grid de platillos: altura fija + scroll propio ── */
     @media (min-width: 768px) {
-      #productGrid { height: calc(100svh - 420px); min-height: 280px; overflow-y: auto; }
+      #productGrid { height: calc(100svh - 295px); min-height: 280px; overflow-y: auto; }
     }
 
     /* ── Responsive ── */
@@ -355,6 +417,19 @@
         </div>
       </div>
 
+      <div class="pay-section-label">Tipo de orden</div>
+      <div class="order-type-group" id="orderTypeGroup" style="margin-bottom:18px">
+        <button class="order-type-btn active" data-type="dine_in" type="button">
+          <span class="ot-icon">🍽️</span>Comer aquí
+        </button>
+        <button class="order-type-btn" data-type="takeout" type="button">
+          <span class="ot-icon">🥡</span>Para llevar
+        </button>
+        <button class="order-type-btn" data-type="delivery" type="button">
+          <span class="ot-icon">🛵</span>A domicilio
+        </button>
+      </div>
+
       <div class="pay-section-label">Métodos de pago</div>
       <div id="paymentRows"></div>
 
@@ -384,6 +459,43 @@
     </div>
   </div>
 
+  <!-- KPI Backdrop -->
+  <div id="kpiBackdrop" class="kpi-backdrop"></div>
+
+  <!-- KPI Drawer -->
+  <div id="kpiDrawer" class="kpi-drawer" role="region" aria-label="Estadísticas del día">
+    <div class="kpi-drawer-header">
+      <span class="kpi-drawer-title">📊 Estadísticas del día</span>
+      <button class="kpi-drawer-close" id="kpiDrawerClose" type="button" aria-label="Cerrar estadísticas">✕</button>
+    </div>
+    <div class="row g-3">
+      <div class="col-6 col-xl-3">
+        <article class="kpi-card">
+          <div class="kpi-icon">↗</div>
+          <div><p>Ventas del día</p><strong id="kpiSales">$0.00</strong></div>
+        </article>
+      </div>
+      <div class="col-6 col-xl-3">
+        <article class="kpi-card">
+          <div class="kpi-icon amber">💰</div>
+          <div><p>Propinas del día</p><strong id="kpiTips">$0.00</strong></div>
+        </article>
+      </div>
+      <div class="col-6 col-xl-3">
+        <article class="kpi-card">
+          <div class="kpi-icon coral">✅</div>
+          <div><p>Órdenes pagadas hoy</p><strong id="kpiPaid">0</strong></div>
+        </article>
+      </div>
+      <div class="col-6 col-xl-3">
+        <article class="kpi-card">
+          <div class="kpi-icon blue">💳</div>
+          <div><p>Ticket promedio</p><strong id="kpiAvg">$0.00</strong></div>
+        </article>
+      </div>
+    </div>
+  </div>
+
   <main class="app-shell">
     <section class="pos-page">
       <header class="topbar">
@@ -397,36 +509,11 @@
         <div class="top-actions">
           <div class="status-pill"><span class="dot"></span>POS Activo</div>
           <div class="time-chip" id="clockChip"></div>
+          <button class="stats-btn" id="statsToggleBtn" type="button" aria-expanded="false">
+            📊 Estadísticas
+          </button>
         </div>
       </header>
-
-      <!-- KPIs -->
-      <section class="row g-3 mb-3 kpis-row" aria-label="Resumen del día">
-        <div class="col-6 col-xl-3">
-          <article class="kpi-card">
-            <div class="kpi-icon">↗</div>
-            <div><p>Ventas del día</p><strong id="kpiSales">$0.00</strong></div>
-          </article>
-        </div>
-        <div class="col-6 col-xl-3">
-          <article class="kpi-card">
-            <div class="kpi-icon amber">🟡</div>
-            <div><p>Órdenes abiertas</p><strong id="kpiOpen">0</strong></div>
-          </article>
-        </div>
-        <div class="col-6 col-xl-3">
-          <article class="kpi-card">
-            <div class="kpi-icon coral">✅</div>
-            <div><p>Órdenes pagadas hoy</p><strong id="kpiPaid">0</strong></div>
-          </article>
-        </div>
-        <div class="col-6 col-xl-3">
-          <article class="kpi-card">
-            <div class="kpi-icon blue">💳</div>
-            <div><p>Ticket promedio</p><strong id="kpiAvg">$0.00</strong></div>
-          </article>
-        </div>
-      </section>
 
       <section class="row g-3 align-items-start workspace-row">
         <!-- Panel catálogo -->
@@ -462,7 +549,7 @@
                 <h2 id="orderTitle">Nueva orden</h2>
                 <p id="orderMeta">Sin ítems · <span id="orderMesaBadge"></span></p>
               </div>
-              <button class="orders-btn" id="openOrdersBtn" type="button">🧾 Órdenes activas</button>
+              <button class="orders-btn" id="openOrdersBtn" type="button">🧾 Órdenes activas (<span id="openOrdersCount">0</span>)</button>
             </div>
           </div>
 
@@ -560,6 +647,7 @@
       savedOrderId:  null,
       orderNumber:   null,
       tableName:     '',
+      orderType:     'dine_in',
     };
 
     // ─────────────────────────────────────────────────────────────
@@ -594,10 +682,11 @@
         const json = await api('GET', '/api/v1/dashboard/summary');
         if (!json.success) return;
         const d = json.data;
-        document.getElementById('kpiSales').textContent = money.format(d.sales_today);
-        document.getElementById('kpiOpen').textContent  = d.open_orders;
-        document.getElementById('kpiPaid').textContent  = d.paid_orders;
-        document.getElementById('kpiAvg').textContent   = money.format(d.average_ticket);
+        document.getElementById('kpiSales').textContent      = money.format(d.sales_today);
+        document.getElementById('kpiTips').textContent       = money.format(d.tips_today);
+        document.getElementById('kpiPaid').textContent       = d.paid_orders;
+        document.getElementById('kpiAvg').textContent        = money.format(d.average_ticket);
+        document.getElementById('openOrdersCount').textContent = d.open_orders;
       } catch {}
     }
 
@@ -673,7 +762,7 @@
       const existing = state.cart.get(key);
       state.cart.set(key, existing
         ? { ...existing, qty: existing.qty + 1 }
-        : { key, name: dish.name, price: parseFloat(dish.price), qty: 1, dishId: dish.id });
+        : { key, name: dish.name, price: parseFloat(dish.price), qty: 1, dishId: dish.id, notes: '' });
       invalidateSavedOrder();
       renderCart();
     }
@@ -708,7 +797,7 @@
         updateTotals(0); return;
       }
 
-      cartList.innerHTML = items.map(({ key, name, price, qty }) => `
+      cartList.innerHTML = items.map(({ key, name, price, qty, notes }) => `
         <article class="cart-item">
           <div class="cart-thumb">🍽️</div>
           <div class="cart-main">
@@ -727,6 +816,9 @@
               </div>
               <div class="line-total">${money.format(price * qty)}</div>
             </div>
+            <input class="item-notes" type="text" data-notes-key="${key}"
+              placeholder="Comentario para cocina (ej: sin cebolla, término medio…)"
+              value="${(notes ?? '').replace(/"/g, '&quot;')}" />
           </div>
         </article>`).join('');
 
@@ -741,6 +833,14 @@
       if (inc)    changeQty(Number(inc.dataset.inc),  +1);
       if (dec)    changeQty(Number(dec.dataset.dec),  -1);
       if (remove) removeFromCart(Number(remove.dataset.remove));
+    });
+
+    document.getElementById('cartList').addEventListener('input', e => {
+      const inp = e.target.closest('.item-notes');
+      if (!inp) return;
+      const key   = Number(inp.dataset.notesKey);
+      const entry = state.cart.get(key);
+      if (entry) state.cart.set(key, { ...entry, notes: inp.value });
     });
 
     // ─────────────────────────────────────────────────────────────
@@ -801,11 +901,12 @@
     //  Helpers de payload
     // ─────────────────────────────────────────────────────────────
     function buildItems() {
-      return [...state.cart.values()].map(({ dishId, name, price, qty }) => ({
+      return [...state.cart.values()].map(({ dishId, name, price, qty, notes }) => ({
         dish_id:       dishId ?? null,
         name_snapshot: name,
         unit_price:    price,
         quantity:      qty,
+        notes:         notes || null,
       }));
     }
 
@@ -822,6 +923,7 @@
       state.savedOrderId = null;
       state.orderNumber  = null;
       state.tableName    = '';
+      state.orderType    = 'dine_in';
       state.tipPercent   = 0;
       document.getElementById('tipAmountInput').value = '';
       document.querySelectorAll('.tip-btn').forEach((b, i) => b.classList.toggle('active', i === 3)); // "Sin propina"
@@ -833,9 +935,22 @@
     // ─────────────────────────────────────────────────────────────
     //  MODAL: Guardar orden (pedir mesa)
     // ─────────────────────────────────────────────────────────────
+    // Helpers para el selector de tipo de orden
+    function setOrderType(type) {
+      state.orderType = type;
+      document.querySelectorAll('.order-type-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.type === type)
+      );
+    }
+    document.getElementById('orderTypeGroup').addEventListener('click', e => {
+      const btn = e.target.closest('[data-type]');
+      if (btn) setOrderType(btn.dataset.type);
+    });
+
+    const orderTypeLabels = { dine_in: '🍽️ Comer aquí', takeout: '🥡 Para llevar', delivery: '🛵 A domicilio' };
+
     document.getElementById('saveOrderBtn').addEventListener('click', () => {
       if (state.cart.size === 0) { toast('Agrega al menos un platillo', 'error'); return; }
-      // Prellenar si ya hay mesa guardada
       document.getElementById('tableNameInput').value    = state.tableName || '';
       document.getElementById('customerNameInput').value = '';
       document.getElementById('saveNotesInput').value    = '';
@@ -864,6 +979,7 @@
           items:         buildItems(),
           table_name:    tableName,
           customer_name: customerName || null,
+          order_type:    state.orderType,
           notes:         notes || null,
           ...totals,
         };
@@ -947,6 +1063,7 @@
         state.savedOrderId = order.id;
         state.orderNumber  = order.order_number;
         state.tableName    = order.table_name ?? '';
+        setOrderType(order.order_type ?? 'dine_in');
 
         for (const item of (order.items ?? [])) {
           const key   = item.dish_id ?? -(item.id);  // clave por dish_id o negativa por ítem
@@ -968,8 +1085,10 @@
 
         // Actualizar header de la orden
         document.getElementById('orderTitle').textContent = `Orden ${order.order_number ?? '#' + order.id}`;
-        const mesa = order.table_name ? `🍽️ ${order.table_name}` : 'Sin mesa';
-        document.getElementById('orderMeta').innerHTML = `${mesa} · <span id="orderMesaBadge"></span>`;
+        const mesa = order.table_name ? `${order.table_name}` : 'Sin mesa';
+        const otype = order.order_type ?? 'dine_in';
+        document.getElementById('orderMeta').innerHTML =
+          `<span class="order-type-badge ${otype}">${orderTypeLabels[otype]}</span> · ${mesa} · <span id="orderMesaBadge"></span>`;
 
         renderCart();
         toast(`✅ Orden cargada — ${mesa}`, 'success');
@@ -1031,6 +1150,9 @@
       payOrderTotal = totals.total;
       document.getElementById('payModalTotal').textContent = money.format(payOrderTotal);
 
+      // Sincronizar selector de tipo de orden con el estado actual
+      setOrderType(state.orderType);
+
       // Limpiar filas anteriores y agregar una por defecto (efectivo, total completo)
       payRowCounter = 0;
       document.getElementById('paymentRows').innerHTML = '';
@@ -1085,11 +1207,14 @@
         let orderId = state.savedOrderId;
         if (!orderId) {
           const totals  = currentTotals();
-          const payload = { items: buildItems(), ...totals, table_name: state.tableName || null, notes: null };
+          const payload = { items: buildItems(), ...totals, table_name: state.tableName || null, order_type: state.orderType, notes: null };
           const cj      = await api('POST', '/api/v1/orders', payload);
           if (!cj.success) { toast(cj.message || 'Error creando la orden', 'error'); return; }
           orderId            = cj.data.id;
           state.savedOrderId = orderId;
+        } else {
+          // Actualizar tipo en orden ya guardada
+          await api('PUT', `/api/v1/orders/${orderId}`, { order_type: state.orderType });
         }
 
         const payJson = await api('POST', `/api/v1/orders/${orderId}/pay`, {
@@ -1133,6 +1258,28 @@
     // ─────────────────────────────────────────────────────────────
     //  Init
     // ─────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
+    //  KPI Drawer
+    // ─────────────────────────────────────────────────────────────
+    function openKpiDrawer() {
+      document.getElementById('kpiDrawer').classList.add('open');
+      document.getElementById('kpiBackdrop').classList.add('open');
+      document.getElementById('statsToggleBtn').classList.add('active');
+      document.getElementById('statsToggleBtn').setAttribute('aria-expanded', 'true');
+    }
+    function closeKpiDrawer() {
+      document.getElementById('kpiDrawer').classList.remove('open');
+      document.getElementById('kpiBackdrop').classList.remove('open');
+      document.getElementById('statsToggleBtn').classList.remove('active');
+      document.getElementById('statsToggleBtn').setAttribute('aria-expanded', 'false');
+    }
+    document.getElementById('statsToggleBtn').addEventListener('click', () => {
+      document.getElementById('kpiDrawer').classList.contains('open') ? closeKpiDrawer() : openKpiDrawer();
+    });
+    document.getElementById('kpiDrawerClose').addEventListener('click', closeKpiDrawer);
+    document.getElementById('kpiBackdrop').addEventListener('click', closeKpiDrawer);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeKpiDrawer(); });
+
     loadMenu();
     loadKpis();
     setInterval(loadKpis, 60000);

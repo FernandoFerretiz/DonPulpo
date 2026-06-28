@@ -38,10 +38,12 @@ class OrderController extends Controller
             'items.*.name_snapshot' => 'required_without:items.*.dish_id|string',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.quantity'  => 'required|integer|min:1',
+            'items.*.notes'     => 'nullable|string|max:255',
             'tip'               => 'nullable|numeric|min:0',
             'notes'             => 'nullable|string|max:500',
             'customer_name'     => 'nullable|string|max:255',
             'table_name'        => 'nullable|string|max:100',
+            'order_type'        => 'nullable|in:dine_in,takeout,delivery',
         ]);
 
         try {
@@ -65,6 +67,7 @@ class OrderController extends Controller
         $request->validate([
             'customer_name' => 'nullable|string|max:255',
             'table_name'    => 'nullable|string|max:100',
+            'order_type'    => 'nullable|in:dine_in,takeout,delivery',
             'notes'         => 'nullable|string|max:500',
             'tip'           => 'nullable|numeric|min:0',
         ]);
@@ -75,7 +78,7 @@ class OrderController extends Controller
                 $this->orderService->recalculateTotals($order);
             }
 
-            $order->update($request->only(['customer_name', 'table_name', 'notes']));
+            $order->update($request->only(['customer_name', 'table_name', 'order_type', 'notes']));
 
             return response()->json(['success' => true, 'data' => $order->fresh(['items']), 'message' => 'Orden actualizada correctamente']);
         } catch (\Throwable $e) {
@@ -141,6 +144,12 @@ class OrderController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
+    }
+
+    public function activeCount(): JsonResponse
+    {
+        $count = PosOrder::where('status', 'open')->count();
+        return response()->json(['active_orders' => $count]);
     }
 
     public function pay(Request $request, int $id): JsonResponse

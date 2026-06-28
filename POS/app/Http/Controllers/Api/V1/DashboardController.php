@@ -27,6 +27,10 @@ class DashboardController extends Controller
             ? round($salesDay / $paidOrders, 2)
             : 0;
 
+        $tipsToday = PosOrder::where('status', 'paid')
+            ->whereDate('paid_at', $today)
+            ->sum('tip');
+
         return response()->json([
             'success' => true,
             'data'    => [
@@ -34,6 +38,7 @@ class DashboardController extends Controller
                 'open_orders'    => $openOrders,
                 'paid_orders'    => $paidOrders,
                 'average_ticket' => number_format($averageTicket, 2, '.', ''),
+                'tips_today'     => number_format($tipsToday, 2, '.', ''),
                 'date'           => $today->toDateString(),
             ],
             'message' => 'Resumen obtenido correctamente',

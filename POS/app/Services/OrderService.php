@@ -24,6 +24,7 @@ class OrderService
             'user_id'       => $userId,
             'customer_name' => $data['customer_name'] ?? null,
             'table_name'    => $data['table_name'] ?? null,
+            'order_type'    => $data['order_type'] ?? 'dine_in',
             'subtotal'      => $subtotal,
             'tax'           => $tax,
             'tip'           => $tip,

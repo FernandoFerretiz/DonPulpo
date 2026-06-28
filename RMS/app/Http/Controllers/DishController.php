@@ -6,6 +6,7 @@ use App\Models\Dish;
 use App\Models\DishCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -31,10 +32,15 @@ class DishController extends Controller
             'dish_category_id' => 'nullable|exists:dish_categories,id',
             'name'             => 'required|string|max:255',
             'description'      => 'nullable|string',
-            'image_path'       => 'nullable|string|max:500',
+            'image'            => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
             'price'            => 'required|numeric|min:0',
             'status'           => ['required', Rule::in(Dish::STATUSES)],
         ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image_path'] = $request->file('image')->store('dishes', 'public');
+        }
+        unset($validated['image']);
 
         Dish::create($validated);
 
@@ -56,11 +62,25 @@ class DishController extends Controller
             'dish_category_id' => 'nullable|exists:dish_categories,id',
             'name'             => 'required|string|max:255',
             'description'      => 'nullable|string',
-            'image_path'       => 'nullable|string|max:500',
+            'image'            => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
+            'remove_image'     => 'nullable|in:1',
             'price'            => 'required|numeric|min:0',
             'status'           => ['required', Rule::in(Dish::STATUSES)],
         ]);
 
+        if ($request->hasFile('image')) {
+            if ($dish->image_path) {
+                Storage::disk('public')->delete($dish->image_path);
+            }
+            $validated['image_path'] = $request->file('image')->store('dishes', 'public');
+        } elseif ($request->input('remove_image') === '1') {
+            if ($dish->image_path) {
+                Storage::disk('public')->delete($dish->image_path);
+            }
+            $validated['image_path'] = null;
+        }
+
+        unset($validated['image'], $validated['remove_image']);
         $dish->update($validated);
 
         return redirect()->route('dishes.index')->with('success', 'Platillo actualizado correctamente.');
@@ -68,6 +88,9 @@ class DishController extends Controller
 
     public function destroy(Dish $dish): RedirectResponse
     {
+        if ($dish->image_path) {
+            Storage::disk('public')->delete($dish->image_path);
+        }
         $dish->delete();
         return redirect()->route('dishes.index')->with('success', 'Platillo eliminado correctamente.');
     }
