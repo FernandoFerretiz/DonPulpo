@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
+use App\Services\CashMovementService;
 use App\Services\OrderService;
 use App\Services\PaymentService;
+use App\Services\ShiftService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +18,8 @@ class OrderController extends Controller
     public function __construct(
         private OrderService $orderService,
         private PaymentService $paymentService,
+        private ShiftService $shiftService,
+        private CashMovementService $cashMovementService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -157,13 +161,32 @@ class OrderController extends Controller
         $order = PosOrder::findOrFail($id);
 
         $request->validate([
-            'payments'            => 'required|array|min:1',
-            'payments.*.method'   => 'required|in:cash,card,transfer',
-            'payments.*.amount'   => 'required|numeric|min:0.01',
+            'payments'          => 'required|array|min:1',
+            'payments.*.method' => 'required|in:cash,card,transfer',
+            'payments.*.amount' => 'required|numeric|min:0.01',
         ]);
 
+        $hasCash     = collect($request->payments)->contains('method', 'cash');
+        $activeShift = $this->shiftService->getActiveShift();
+
+        if ($hasCash && !$activeShift) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay turno abierto. Abre un turno antes de cobrar en efectivo.',
+            ], 422);
+        }
+
         try {
-            $result = $this->paymentService->payMultiple($order, $request->payments, Auth::id() ?? 0);
+            $userId = Auth::id() ?? 0;
+            $result = $this->paymentService->payMultiple($order, $request->payments, $userId);
+
+            // Register a cash movement for every payment (cash affects expected_cash; card/transfer are for reporting)
+            if ($activeShift) {
+                foreach ($result['payments'] as $payment) {
+                    $this->cashMovementService->registerSalePayment($activeShift, $order, $payment, $userId);
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'data'    => array_merge($result, ['order' => $order->fresh()]),

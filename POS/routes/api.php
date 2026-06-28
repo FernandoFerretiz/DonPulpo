@@ -30,9 +30,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::put('orders/{id}/items/{itemId}', [OrderController::class, 'updateItem']);
     Route::delete('orders/{id}/items/{itemId}', [OrderController::class, 'removeItem']);
 
-    // Cobrar
-    Route::post('orders/{id}/pay', [OrderController::class, 'pay']);
-
     // Dashboard
     Route::get('dashboard/summary', [DashboardController::class, 'summary']);
 });

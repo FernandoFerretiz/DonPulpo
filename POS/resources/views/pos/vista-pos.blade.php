@@ -181,7 +181,8 @@
     .food-image img { width: 100%; height: 118px; object-fit: cover; }
     .product-body { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; padding: 15px; flex: 1; }
     .product-name { margin: 0; font-size: 18px; line-height: 1.18; letter-spacing: -.02em; }
-    .product-cat  { margin: 5px 0 12px; color: var(--ink-500); font-size: 13px; font-weight: 650; }
+    .product-cat  { margin: 5px 0 4px; color: var(--ink-500); font-size: 13px; font-weight: 650; }
+    .product-desc { margin: 0 0 10px; font-size: 12px; line-height: 1.45; color: #6b7280; font-weight: 450; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .price { font-size: 18px; font-weight: 900; letter-spacing: -.025em; color: var(--gold-dark); }
     .add-btn { width: 60px; height: 60px; border-radius: 20px; background: linear-gradient(135deg,var(--gold),var(--gold-dark)); color: #fff; display: grid; place-items: center; font-size: 30px; cursor: pointer; box-shadow: 0 12px 25px rgba(203,131,23,.28); }
     .add-btn:active { transform: scale(.96); }
@@ -311,6 +312,41 @@
     .pay-summary-line.change  strong { color: #065f46; }
     .modal-confirm:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 
+    /* ── Turno y caja chica ── */
+    .shift-btn { min-height: 52px; padding: 0 18px; border-radius: 18px; font-weight: 820; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid transparent; transition: background .15s, border-color .15s; }
+    .shift-btn.no-shift  { background: rgba(153,27,27,.10); border-color: rgba(153,27,27,.35); color: #991b1b; }
+    .shift-btn.has-shift { background: rgba(6,95,70,.10);  border-color: rgba(6,95,70,.35);  color: #065f46; }
+    .shift-btn.no-shift:hover  { background: rgba(153,27,27,.18); }
+    .shift-btn.has-shift:hover { background: rgba(6,95,70,.18); }
+    .shift-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+    .shift-dot.red   { background: #ef4444; box-shadow: 0 0 0 4px rgba(239,68,68,.18); }
+    .shift-dot.green { background: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,.18); }
+
+    .sidebar-section { margin: 4px 0 8px; border-top: 1px solid rgba(255,255,255,.10); padding-top: 10px; }
+    .sidebar-section-label { color: rgba(255,255,255,.42); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; padding: 0 4px 6px; display: block; }
+    .sidebar-action { min-height: 46px; width: 100%; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-radius: 13px; color: rgba(255,255,255,.80); background: transparent; cursor: pointer; font-weight: 740; font-size: 14px; border: none; text-align: left; }
+    .sidebar-action:hover { background: rgba(255,255,255,.07); color: #fff; }
+
+    .voucher-card { border: 1.5px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .voucher-info strong { display: block; font-size: 14px; line-height: 1.25; }
+    .voucher-info span   { display: block; color: var(--ink-500); font-size: 12px; font-weight: 650; margin-top: 2px; }
+    .voucher-amt  { font-weight: 900; font-size: 18px; color: var(--coral-600); white-space: nowrap; text-align: right; }
+    .voucher-folio{ display: block; font-size: 11px; color: var(--ink-500); font-weight: 700; }
+    .pay-voucher-btn { min-height: 38px; padding: 0 14px; border-radius: 11px; background: linear-gradient(135deg,var(--gold),var(--gold-dark)); color: #fff; font-weight: 820; font-size: 13px; cursor: pointer; border: none; white-space: nowrap; }
+    .pay-voucher-btn:active { transform: scale(.96); }
+    .pay-voucher-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+    .summary-item { background: var(--surface-soft); border-radius: 12px; padding: 10px 14px; }
+    .summary-item p      { margin: 0 0 3px; font-size: 11px; font-weight: 800; color: var(--ink-500); text-transform: uppercase; letter-spacing: .08em; }
+    .summary-item strong { display: block; font-size: 17px; font-weight: 900; color: var(--ink-900); }
+    .summary-item.hi-gold    { background: var(--gold-100); }
+    .summary-item.hi-gold strong { color: var(--gold-dark); }
+    .summary-item.hi-danger  { background: #fee2e2; }
+    .summary-item.hi-danger strong { color: #991b1b; }
+    .summary-item.hi-ok      { background: #d1fae5; }
+    .summary-item.hi-ok strong { color: #065f46; }
+
     /* ── Grid de platillos: altura fija + scroll propio ── */
     @media (min-width: 768px) {
       #productGrid { height: calc(100svh - 295px); min-height: 280px; overflow-y: auto; }
@@ -345,6 +381,13 @@
       <a href="{{ route('dashboard') }}" class="nav-link"><span class="nav-icon">📈</span>Dashboard</a>
       <a href="{{ route('home') }}"      class="nav-link"><span class="nav-icon">🏠</span>Inicio</a>
     </nav>
+
+    <div class="sidebar-section">
+      <span class="sidebar-section-label">Turno &amp; Caja</span>
+      <button class="sidebar-action" id="sidebarShiftBtn" type="button">🏧 Gestionar turno</button>
+      <button class="sidebar-action" id="sidebarVouchersBtn" type="button">🧾 Vales pendientes</button>
+      <button class="sidebar-action" id="sidebarManualMovBtn" type="button">💱 Movimiento manual</button>
+    </div>
     <div class="sidebar-art" aria-hidden="true"></div>
     <div class="user-card">
       <div class="avatar">{{ strtoupper(substr(Auth::user()->name, 0, 2)) }}</div>
@@ -459,6 +502,111 @@
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════
+       MODAL: Abrir turno
+  ═══════════════════════════════════════════ -->
+  <div class="modal-overlay" id="shiftOpenModal">
+    <div class="modal-box" style="max-width:420px">
+      <h3>🏧 Abrir turno</h3>
+      <div class="field">
+        <label for="shiftOpenCash">Fondo inicial (efectivo en caja) <span style="color:var(--coral-600)">*</span></label>
+        <input id="shiftOpenCash" type="number" min="0" step="0.01" placeholder="0.00" />
+      </div>
+      <div class="field">
+        <label for="shiftOpenNotes">Notas (opcional)</label>
+        <textarea id="shiftOpenNotes" rows="2" placeholder="Observaciones del turno..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="cancelShiftOpen">Cancelar</button>
+        <button class="modal-confirm" id="confirmShiftOpen">✅ Abrir turno</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MODAL: Cerrar turno / ver resumen
+  ═══════════════════════════════════════════ -->
+  <div class="modal-overlay" id="shiftManageModal">
+    <div class="modal-box" style="max-width:560px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0">🏧 Turno activo</h3>
+        <button class="modal-cancel" style="min-height:36px;padding:0 14px;font-size:13px" id="cancelShiftManage">Cerrar</button>
+      </div>
+      <div id="shiftSummaryArea"></div>
+      <hr style="border-color:var(--line);margin:16px 0" />
+      <p style="font-size:14px;font-weight:760;color:var(--ink-700);margin:0 0 4px">Conteo de cierre</p>
+      <p style="font-size:12px;color:var(--ink-500);margin:0 0 12px">Ingresa el monto contado por cada método de pago.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+        <div class="field" style="margin:0">
+          <label for="shiftCountedCash" style="font-size:12px">💵 Efectivo <span style="color:var(--coral-600)">*</span></label>
+          <input id="shiftCountedCash" type="number" min="0" step="0.01" placeholder="0.00" />
+        </div>
+        <div class="field" style="margin:0">
+          <label for="shiftCountedCard" style="font-size:12px">💳 Tarjeta</label>
+          <input id="shiftCountedCard" type="number" min="0" step="0.01" placeholder="0.00" />
+        </div>
+        <div class="field" style="margin:0">
+          <label for="shiftCountedTransfer" style="font-size:12px">📱 Transferencia</label>
+          <input id="shiftCountedTransfer" type="number" min="0" step="0.01" placeholder="0.00" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="shiftCloseNotes">Notas de cierre (opcional)</label>
+        <textarea id="shiftCloseNotes" rows="2" placeholder="Observaciones..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="cancelShiftClose">Cancelar</button>
+        <button class="modal-confirm" id="confirmShiftClose" style="background:linear-gradient(135deg,#991b1b,#7f1d1d)">
+          🔒 Cerrar turno
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MODAL: Vales de caja chica
+  ═══════════════════════════════════════════ -->
+  <div class="modal-overlay" id="vouchersModal">
+    <div class="modal-box" style="max-width:580px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0">🧾 Vales autorizados</h3>
+        <button class="modal-cancel" style="min-height:36px;padding:0 14px;font-size:13px" id="closeVouchersModal">Cerrar</button>
+      </div>
+      <div id="vouchersListArea">
+        <div class="cart-empty">Cargando...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MODAL: Movimiento manual
+  ═══════════════════════════════════════════ -->
+  <div class="modal-overlay" id="manualMovModal">
+    <div class="modal-box" style="max-width:400px">
+      <h3>💱 Movimiento manual</h3>
+      <div class="field">
+        <label for="manualMovType">Tipo <span style="color:var(--coral-600)">*</span></label>
+        <select id="manualMovType">
+          <option value="INGRESO_MANUAL">Ingreso manual</option>
+          <option value="RETIRO_EFECTIVO">Retiro de efectivo</option>
+          <option value="DEVOLUCION_EFECTIVO">Devolución en efectivo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="manualMovAmount">Monto <span style="color:var(--coral-600)">*</span></label>
+        <input id="manualMovAmount" type="number" min="0.01" step="0.01" placeholder="0.00" />
+      </div>
+      <div class="field">
+        <label for="manualMovDesc">Descripción (opcional)</label>
+        <input id="manualMovDesc" type="text" placeholder="Ej: Compra de servilletas" />
+      </div>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="cancelManualMov">Cancelar</button>
+        <button class="modal-confirm" id="confirmManualMov">✅ Registrar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- KPI Backdrop -->
   <div id="kpiBackdrop" class="kpi-backdrop"></div>
 
@@ -509,6 +657,10 @@
         <div class="top-actions">
           <div class="status-pill"><span class="dot"></span>POS Activo</div>
           <div class="time-chip" id="clockChip"></div>
+          <button class="shift-btn no-shift" id="shiftBtn" type="button">
+            <span class="shift-dot red" id="shiftDot"></span>
+            <span id="shiftBtnLabel">Cargando turno...</span>
+          </button>
           <button class="stats-btn" id="statsToggleBtn" type="button" aria-expanded="false">
             📊 Estadísticas
           </button>
@@ -648,6 +800,7 @@
       orderNumber:   null,
       tableName:     '',
       orderType:     'dine_in',
+      activeShift:   null,       // PosShift | null
     };
 
     // ─────────────────────────────────────────────────────────────
@@ -661,7 +814,14 @@
     }
     sidebarToggle.addEventListener('click', () => setSidebar(!document.body.classList.contains('sidebar-open')));
     backdrop.addEventListener('click', () => setSidebar(false));
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') { setSidebar(false); closeModal('tableModal'); closeModal('ordersModal'); closeModal('payModal'); } });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        setSidebar(false);
+        closeModal('tableModal'); closeModal('ordersModal'); closeModal('payModal');
+        closeModal('shiftOpenModal'); closeModal('shiftManageModal');
+        closeModal('vouchersModal'); closeModal('manualMovModal');
+      }
+    });
 
     // ─────────────────────────────────────────────────────────────
     //  Cargar menú
@@ -739,6 +899,7 @@
               <div>
                 <h3 class="product-name">${d.name}</h3>
                 <p class="product-cat">${d.category_name ?? ''}</p>
+                ${d.description ? `<p class="product-desc">${d.description}</p>` : ''}
                 <div class="price">${money.format(d.price)}</div>
               </div>
               <button class="add-btn" data-add="${d.id}" type="button" aria-label="Agregar ${d.name}">+</button>
@@ -1199,6 +1360,12 @@
         toast(`Faltan ${money.format(payOrderTotal - entered)} para completar el pago`, 'error'); return;
       }
 
+      // Bloquear cobro en efectivo si no hay turno abierto
+      const hasCash = payRows.some(r => r.method === 'cash');
+      if (hasCash && !state.activeShift) {
+        toast('⚠️ Abre un turno antes de cobrar en efectivo.', 'error', 5000); return;
+      }
+
       const btn = document.getElementById('confirmPay');
       btn.textContent = 'Procesando...'; btn.disabled = true;
 
@@ -1256,6 +1423,259 @@
     });
 
     // ─────────────────────────────────────────────────────────────
+    //  TURNO — estado y UI
+    // ─────────────────────────────────────────────────────────────
+    function updateShiftUI() {
+      const btn   = document.getElementById('shiftBtn');
+      const label = document.getElementById('shiftBtnLabel');
+      const dot   = document.getElementById('shiftDot');
+      if (!state.activeShift) {
+        btn.className   = 'shift-btn no-shift';
+        dot.className   = 'shift-dot red';
+        label.textContent = 'Sin turno activo';
+      } else {
+        const time = new Date(state.activeShift.opened_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+        btn.className   = 'shift-btn has-shift';
+        dot.className   = 'shift-dot green';
+        label.textContent = `Turno desde ${time}`;
+      }
+    }
+
+    async function loadActiveShift() {
+      try {
+        const json = await api('GET', '/api/v1/shifts/active');
+        if (json.success) { state.activeShift = json.data ?? null; updateShiftUI(); }
+      } catch {}
+    }
+
+    // Botón topbar → abrir modal según estado del turno
+    document.getElementById('shiftBtn').addEventListener('click', () => {
+      if (state.activeShift) openShiftManageModal();
+      else                   openModal('shiftOpenModal');
+    });
+
+    // Botones sidebar
+    document.getElementById('sidebarShiftBtn').addEventListener('click', () => {
+      setSidebar(false);
+      if (state.activeShift) openShiftManageModal();
+      else                   openModal('shiftOpenModal');
+    });
+    document.getElementById('sidebarVouchersBtn').addEventListener('click', () => {
+      setSidebar(false); openVouchersModal();
+    });
+    document.getElementById('sidebarManualMovBtn').addEventListener('click', () => {
+      setSidebar(false);
+      if (!state.activeShift) { toast('No hay turno abierto para registrar movimientos.', 'error'); return; }
+      openModal('manualMovModal');
+    });
+
+    // ── Modal abrir turno ──────────────────────────────────────────
+    document.getElementById('cancelShiftOpen').addEventListener('click', () => closeModal('shiftOpenModal'));
+
+    document.getElementById('confirmShiftOpen').addEventListener('click', async () => {
+      const cash  = parseFloat(document.getElementById('shiftOpenCash').value);
+      const notes = document.getElementById('shiftOpenNotes').value.trim();
+      if (isNaN(cash) || cash < 0) { toast('Ingresa un fondo inicial válido (puede ser 0).', 'error'); return; }
+
+      const btn = document.getElementById('confirmShiftOpen');
+      btn.textContent = 'Abriendo...'; btn.disabled = true;
+
+      try {
+        const json = await api('POST', '/api/v1/shifts', { opening_cash: cash, notes: notes || null });
+        if (json.success) {
+          state.activeShift = json.data;
+          updateShiftUI();
+          closeModal('shiftOpenModal');
+          toast('✅ Turno abierto correctamente.', 'success');
+          document.getElementById('shiftOpenCash').value  = '';
+          document.getElementById('shiftOpenNotes').value = '';
+        } else {
+          toast(json.message || 'Error al abrir turno.', 'error');
+        }
+      } catch { toast('Error de conexión.', 'error'); }
+      finally { btn.textContent = '✅ Abrir turno'; btn.disabled = false; }
+    });
+
+    // ── Modal gestionar / cerrar turno ─────────────────────────────
+    function openShiftManageModal() {
+      if (!state.activeShift) { toast('No hay turno abierto.', 'error'); return; }
+
+      const s    = state.activeShift;
+      const time = new Date(s.opened_at).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+      // Build a quick summary
+      document.getElementById('shiftSummaryArea').innerHTML = `
+        <div class="summary-grid">
+          <div class="summary-item">
+            <p>Cajero</p><strong>${s.user?.name ?? '—'}</strong>
+          </div>
+          <div class="summary-item">
+            <p>Apertura</p><strong style="font-size:14px">${time}</strong>
+          </div>
+          <div class="summary-item hi-gold">
+            <p>Fondo inicial</p><strong>${money.format(s.opening_cash)}</strong>
+          </div>
+          <div class="summary-item">
+            <p>ID turno</p><strong>#${s.id}</strong>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--ink-500);margin:0 0 4px">
+          El efectivo esperado se calcula automáticamente al cerrar.
+        </p>
+      `;
+
+      document.getElementById('shiftCountedCash').value = '';
+      document.getElementById('shiftCloseNotes').value  = '';
+      openModal('shiftManageModal');
+      setTimeout(() => document.getElementById('shiftCountedCash').focus(), 160);
+    }
+
+    document.getElementById('cancelShiftManage').addEventListener('click', () => closeModal('shiftManageModal'));
+    document.getElementById('cancelShiftClose').addEventListener('click',  () => closeModal('shiftManageModal'));
+
+    document.getElementById('confirmShiftClose').addEventListener('click', async () => {
+      const countedCash     = parseFloat(document.getElementById('shiftCountedCash').value);
+      const countedCard     = parseFloat(document.getElementById('shiftCountedCard').value)     || 0;
+      const countedTransfer = parseFloat(document.getElementById('shiftCountedTransfer').value) || 0;
+      const notes           = document.getElementById('shiftCloseNotes').value.trim();
+
+      if (isNaN(countedCash) || countedCash < 0) {
+        toast('Ingresa el efectivo contado (puede ser 0).', 'error'); return;
+      }
+
+      const totalContado = countedCash + countedCard + countedTransfer;
+      const ok = confirm(
+        `¿Cerrar el turno?\n\nEfectivo: $${countedCash.toFixed(2)}\nTarjeta: $${countedCard.toFixed(2)}\nTransferencia: $${countedTransfer.toFixed(2)}\nTotal contado: $${totalContado.toFixed(2)}\n\nEsta acción no se puede deshacer.`
+      );
+      if (!ok) return;
+
+      const btn = document.getElementById('confirmShiftClose');
+      btn.textContent = 'Cerrando...'; btn.disabled = true;
+
+      try {
+        const json = await api('POST', `/api/v1/shifts/${state.activeShift.id}/close`, {
+          counted_cash:     countedCash,
+          counted_card:     countedCard,
+          counted_transfer: countedTransfer,
+          notes:            notes || null,
+        });
+
+        if (json.success) {
+          const t    = json.data.totals;
+          const diff = t.difference ?? 0;
+          const sign = diff >= 0 ? '+' : '';
+          toast(
+            `🔒 Turno cerrado · Efectivo esperado: ${money.format(t.expected_cash)} · Diferencia efectivo: ${sign}${money.format(diff)}`,
+            diff === 0 ? 'success' : '', 8000
+          );
+          state.activeShift = null;
+          updateShiftUI();
+          closeModal('shiftManageModal');
+        } else {
+          toast(json.message || 'Error al cerrar turno.', 'error');
+        }
+      } catch { toast('Error de conexión.', 'error'); }
+      finally { btn.textContent = '🔒 Cerrar turno'; btn.disabled = false; }
+    });
+
+    // ── Modal vales de caja chica ──────────────────────────────────
+    document.getElementById('closeVouchersModal').addEventListener('click', () => closeModal('vouchersModal'));
+
+    async function openVouchersModal() {
+      openModal('vouchersModal');
+      const area = document.getElementById('vouchersListArea');
+      area.innerHTML = '<div class="cart-empty">Cargando vales...</div>';
+
+      try {
+        const json = await api('GET', '/api/v1/petty-cash/vouchers');
+        if (!json.success) { area.innerHTML = '<div class="cart-empty">Error cargando vales.</div>'; return; }
+
+        const vouchers = json.data;
+        if (!vouchers.length) {
+          area.innerHTML = '<div class="cart-empty">No hay vales autorizados pendientes de pago.</div>'; return;
+        }
+
+        area.innerHTML = vouchers.map(v => `
+          <div class="voucher-card" id="voucher-card-${v.id}">
+            <div class="voucher-info">
+              <code class="voucher-folio">${v.folio}</code>
+              <strong>${v.concept}</strong>
+              <span>${v.category?.name ?? 'Sin categoría'} · Solicita: ${v.requested_by?.name ?? '—'}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+              <div class="voucher-amt">${money.format(v.amount)}</div>
+              <button class="pay-voucher-btn" data-voucher-id="${v.id}" data-folio="${v.folio}"
+                ${!state.activeShift ? 'disabled title="Abre un turno primero"' : ''}>
+                Pagar
+              </button>
+            </div>
+          </div>`).join('');
+      } catch { area.innerHTML = '<div class="cart-empty">Error de conexión.</div>'; }
+    }
+
+    document.getElementById('vouchersListArea').addEventListener('click', async e => {
+      const btn = e.target.closest('[data-voucher-id]');
+      if (!btn || btn.disabled) return;
+      if (!state.activeShift) { toast('Abre un turno para pagar vales.', 'error'); return; }
+
+      const id    = btn.dataset.voucherId;
+      const folio = btn.dataset.folio;
+      if (!confirm(`¿Pagar vale ${folio}?`)) return;
+
+      btn.textContent = 'Pagando...'; btn.disabled = true;
+
+      try {
+        const json = await api('POST', `/api/v1/petty-cash/vouchers/${id}/pay`);
+        if (json.success) {
+          toast(`✅ ${json.message}`, 'success');
+          const card = document.getElementById(`voucher-card-${id}`);
+          if (card) card.remove();
+          const area = document.getElementById('vouchersListArea');
+          if (!area.querySelector('.voucher-card')) {
+            area.innerHTML = '<div class="cart-empty">No hay vales autorizados pendientes de pago.</div>';
+          }
+        } else {
+          toast(json.message || 'Error al pagar vale.', 'error');
+          btn.textContent = 'Pagar'; btn.disabled = false;
+        }
+      } catch {
+        toast('Error de conexión.', 'error');
+        btn.textContent = 'Pagar'; btn.disabled = false;
+      }
+    });
+
+    // ── Modal movimiento manual ────────────────────────────────────
+    document.getElementById('cancelManualMov').addEventListener('click', () => closeModal('manualMovModal'));
+
+    document.getElementById('confirmManualMov').addEventListener('click', async () => {
+      if (!state.activeShift) { toast('No hay turno abierto.', 'error'); return; }
+
+      const type   = document.getElementById('manualMovType').value;
+      const amount = parseFloat(document.getElementById('manualMovAmount').value);
+      const desc   = document.getElementById('manualMovDesc').value.trim();
+
+      if (isNaN(amount) || amount <= 0) { toast('Ingresa un monto válido.', 'error'); return; }
+
+      const btn = document.getElementById('confirmManualMov');
+      btn.textContent = 'Registrando...'; btn.disabled = true;
+
+      try {
+        const json = await api('POST', `/api/v1/shifts/${state.activeShift.id}/movements`, {
+          type, amount, description: desc || null,
+        });
+        if (json.success) {
+          toast('✅ Movimiento registrado.', 'success');
+          closeModal('manualMovModal');
+          document.getElementById('manualMovAmount').value = '';
+          document.getElementById('manualMovDesc').value   = '';
+        } else {
+          toast(json.message || 'Error registrando movimiento.', 'error');
+        }
+      } catch { toast('Error de conexión.', 'error'); }
+      finally { btn.textContent = '✅ Registrar'; btn.disabled = false; }
+    });
+
+    // ─────────────────────────────────────────────────────────────
     //  Init
     // ─────────────────────────────────────────────────────────────
     // ─────────────────────────────────────────────────────────────
@@ -1282,6 +1702,7 @@
 
     loadMenu();
     loadKpis();
+    loadActiveShift();
     setInterval(loadKpis, 60000);
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
