@@ -4,10 +4,16 @@ namespace App\Services;
 
 use App\Models\CashMovement;
 use App\Models\PosShift;
+use App\Services\Sync\OutboxRecorder;
 use Illuminate\Support\Facades\DB;
 
 class ShiftService
 {
+    public function __construct(
+        private CashMovementService $cashMovementService,
+        private OutboxRecorder $outbox,
+    ) {}
+
     public function getActiveShift(): ?PosShift
     {
         return PosShift::open()->latest('opened_at')->first();
@@ -28,12 +34,15 @@ class ShiftService
                 'notes'        => $notes,
             ]);
 
-            CashMovement::create([
-                'pos_shift_id' => $shift->id,
-                'user_id'      => $userId,
-                'type'         => CashMovement::TYPE_FONDO_INICIAL,
-                'amount'       => round($openingCash, 2),
-                'description'  => 'Fondo inicial de turno',
+            // Recorded before the opening cash movement so that, on the
+            // BackOffice side, the shift always exists by the time the
+            // movement referencing it is processed (events are applied
+            // in the order they were queued).
+            $this->outbox->record('pos_shift.opened', $shift, [], ['user']);
+
+            $this->cashMovementService->registerMovement($shift, CashMovement::TYPE_FONDO_INICIAL, $openingCash, [
+                'user_id'     => $userId,
+                'description' => 'Fondo inicial de turno',
             ]);
 
             return $shift->load('user');
@@ -66,7 +75,10 @@ class ShiftService
                 'notes'            => $notes ?? $shift->notes,
             ]);
 
-            return $shift->fresh();
+            $shift = $shift->fresh();
+            $this->outbox->record('pos_shift.closed', $shift, [], ['user']);
+
+            return $shift;
         });
     }
 

@@ -7,9 +7,12 @@ use App\Models\PosOrder;
 use App\Models\PosPayment;
 use App\Models\PosShift;
 use App\Models\PettyCashVoucher;
+use App\Services\Sync\OutboxRecorder;
 
 class CashMovementService
 {
+    public function __construct(private OutboxRecorder $outbox) {}
+
     public function registerMovement(
         PosShift $shift,
         string   $type,
@@ -20,7 +23,7 @@ class CashMovementService
             throw new \RuntimeException('No se pueden registrar movimientos en un turno cerrado.');
         }
 
-        return CashMovement::create(array_merge([
+        $movement = CashMovement::create(array_merge([
             'pos_shift_id' => $shift->id,
             'user_id'      => $extra['user_id'] ?? $shift->user_id,
             'type'         => $type,
@@ -31,6 +34,10 @@ class CashMovementService
             'reference_type' => $extra['reference_type'] ?? null,
             'reference_id'   => $extra['reference_id']   ?? null,
         ], fn($v) => $v !== null)));
+
+        $this->outbox->record('cash_movement.created', $movement, [], ['shift', 'user']);
+
+        return $movement;
     }
 
     public function registerSalePayment(

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Dish extends Model
 {
-    protected $fillable = ['dish_category_id', 'name', 'description', 'image_path', 'price', 'status'];
+    protected $fillable = ['uuid', 'dish_category_id', 'name', 'description', 'image_path', 'price', 'status'];
 
     protected function casts(): array
     {

@@ -5,10 +5,13 @@ namespace App\Services;
 use App\Models\Dish;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
+use App\Services\Sync\OutboxRecorder;
 use Illuminate\Support\Str;
 
 class OrderService
 {
+    public function __construct(private OutboxRecorder $outbox) {}
+
     public function createOrder(array $data, int $userId): PosOrder
     {
         $items = $data['items'] ?? [];
@@ -34,32 +37,22 @@ class OrderService
         ]);
 
         foreach ($items as $item) {
-            $this->addItemToOrder($order, $item);
+            $this->insertItem($order, $item);
         }
 
-        return $order->load('items');
+        $order = $order->load('items');
+        $this->outbox->record('pos_order.created', $order, [], ['user', 'items.dish']);
+
+        return $order;
     }
 
     public function addItemToOrder(PosOrder $order, array $item): PosOrderItem
     {
         $this->assertModifiable($order);
 
-        $dish     = isset($item['dish_id']) ? Dish::find($item['dish_id']) : null;
-        $name     = $item['name_snapshot'] ?? $dish?->name ?? 'Producto';
-        $price    = (float) ($item['unit_price'] ?? $dish?->price ?? 0);
-        $quantity = (int) ($item['quantity'] ?? 1);
-
-        $orderItem = PosOrderItem::create([
-            'pos_order_id'  => $order->id,
-            'dish_id'       => $dish?->id,
-            'name_snapshot' => $name,
-            'unit_price'    => $price,
-            'quantity'      => $quantity,
-            'line_total'    => round($price * $quantity, 2),
-            'notes'         => $item['notes'] ?? null,
-        ]);
-
+        $orderItem = $this->insertItem($order, $item);
         $this->recalculateTotals($order);
+        $this->outbox->record('pos_order.item_added', $order, ['item_uuid' => $orderItem->uuid], ['user', 'items.dish']);
 
         return $orderItem;
     }
@@ -74,6 +67,7 @@ class OrderService
         ]);
 
         $this->recalculateTotals($order);
+        $this->outbox->record('pos_order.item_updated', $order, ['item_uuid' => $item->uuid], ['user', 'items.dish']);
 
         return $item->fresh();
     }
@@ -81,8 +75,10 @@ class OrderService
     public function removeItem(PosOrder $order, PosOrderItem $item): void
     {
         $this->assertModifiable($order);
+        $itemUuid = $item->uuid;
         $item->delete();
         $this->recalculateTotals($order);
+        $this->outbox->record('pos_order.item_removed', $order, ['item_uuid' => $itemUuid], ['user', 'items.dish']);
     }
 
     public function recalculateTotals(PosOrder $order): void
@@ -101,11 +97,37 @@ class OrderService
         ]);
     }
 
-    public function cancelOrder(PosOrder $order): PosOrder
+    public function cancelOrder(PosOrder $order, int $userId, ?string $reason = null): PosOrder
     {
         $this->assertModifiable($order);
-        $order->update(['status' => 'cancelled']);
-        return $order->fresh();
+        $order->update([
+            'status'           => 'cancelled',
+            'cancelled_by'     => $userId,
+            'cancelled_at'     => now(),
+            'cancelled_reason' => $reason,
+        ]);
+        $order = $order->fresh();
+        $this->outbox->record('pos_order.cancelled', $order, [], ['user', 'items.dish', 'cancelledByUser']);
+
+        return $order;
+    }
+
+    private function insertItem(PosOrder $order, array $item): PosOrderItem
+    {
+        $dish     = isset($item['dish_id']) ? Dish::find($item['dish_id']) : null;
+        $name     = $item['name_snapshot'] ?? $dish?->name ?? 'Producto';
+        $price    = (float) ($item['unit_price'] ?? $dish?->price ?? 0);
+        $quantity = (int) ($item['quantity'] ?? 1);
+
+        return PosOrderItem::create([
+            'pos_order_id'  => $order->id,
+            'dish_id'       => $dish?->id,
+            'name_snapshot' => $name,
+            'unit_price'    => $price,
+            'quantity'      => $quantity,
+            'line_total'    => round($price * $quantity, 2),
+            'notes'         => $item['notes'] ?? null,
+        ]);
     }
 
     private function assertModifiable(PosOrder $order): void

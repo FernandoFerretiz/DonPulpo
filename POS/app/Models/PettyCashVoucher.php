@@ -2,17 +2,23 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToCurrentBranch;
+use App\Concerns\HasSyncableUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PettyCashVoucher extends Model
 {
+    use HasSyncableUuid;
+    use BelongsToCurrentBranch;
+
     protected $fillable = [
         'folio', 'requested_by', 'authorized_by', 'rejected_by', 'paid_by',
         'pos_shift_id', 'petty_cash_category_id',
         'beneficiary', 'concept', 'amount', 'status',
         'requested_at', 'authorized_at', 'rejected_at', 'paid_at', 'cancelled_at',
         'rejection_reason', 'notes',
+        'branch_id', 'sync_status',
     ];
 
     protected $casts = [

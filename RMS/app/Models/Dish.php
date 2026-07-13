@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Concerns\HasSyncableUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Dish extends Model
 {
+    use HasSyncableUuid;
+
     protected $fillable = [
         'dish_category_id',
         'name',
@@ -14,6 +17,7 @@ class Dish extends Model
         'image_path',
         'price',
         'status',
+        'company_id',
     ];
 
     protected function casts(): array
@@ -28,6 +32,11 @@ class Dish extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(DishCategory::class, 'dish_category_id');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function getStatusLabel(): string

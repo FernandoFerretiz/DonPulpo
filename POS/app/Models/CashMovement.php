@@ -2,15 +2,21 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToCurrentBranch;
+use App\Concerns\HasSyncableUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class CashMovement extends Model
 {
+    use HasSyncableUuid;
+    use BelongsToCurrentBranch;
+
     protected $fillable = [
         'pos_shift_id', 'user_id', 'type', 'amount',
         'payment_method', 'description', 'reference_type', 'reference_id',
+        'branch_id', 'sync_status',
     ];
 
     protected $casts = [

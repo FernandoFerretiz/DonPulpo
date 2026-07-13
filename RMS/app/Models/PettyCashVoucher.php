@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PettyCashVoucher extends Model
 {
+    // Only ever upserted by App\Services\Sync\Handlers\PettyCashVoucherEventHandler.
     protected $fillable = [
+        'uuid', 'branch_id',
         'folio', 'requested_by', 'authorized_by', 'rejected_by', 'paid_by',
         'pos_shift_id', 'petty_cash_category_id',
         'beneficiary', 'concept', 'amount', 'status',

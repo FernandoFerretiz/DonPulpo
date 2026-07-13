@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PettyCashCategory extends Model
 {
-    protected $fillable = ['name', 'is_active'];
+    protected $fillable = ['uuid', 'name', 'is_active'];
 
     protected $casts = ['is_active' => 'boolean'];
 

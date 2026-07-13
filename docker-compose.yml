@@ -35,6 +35,7 @@ services:
       MYSQL_PASSWORD: 1234567890a.-
     volumes:
       - db_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
     mem_limit: 512m
     cpus: 0.5
 

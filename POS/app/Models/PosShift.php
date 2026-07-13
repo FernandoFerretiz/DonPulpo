@@ -2,18 +2,24 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToCurrentBranch;
+use App\Concerns\HasSyncableUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PosShift extends Model
 {
+    use HasSyncableUuid;
+    use BelongsToCurrentBranch;
+
     protected $fillable = [
         'user_id', 'terminal_id', 'status',
         'opening_cash', 'expected_cash',
         'counted_cash', 'counted_card', 'counted_transfer',
         'difference',
         'opened_at', 'closed_at', 'notes',
+        'branch_id', 'sync_status',
     ];
 
     protected $casts = [

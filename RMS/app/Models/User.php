@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Concerns\HasSyncableUuid;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
+    use HasSyncableUuid;
     use Notifiable;
 
     protected $fillable = [
@@ -15,6 +18,7 @@ class User extends Authenticatable
         'password',
         'role',
         'status',
+        'company_id',
     ];
 
     protected $hidden = [
@@ -32,6 +36,11 @@ class User extends Authenticatable
 
     public const ROLES = ['admin', 'manager', 'cashier', 'waiter', 'kitchen'];
     public const STATUSES = ['active', 'inactive'];
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
 
     public function getRoleLabel(): string
     {

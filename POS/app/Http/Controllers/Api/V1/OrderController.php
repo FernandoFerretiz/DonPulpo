@@ -90,12 +90,16 @@ class OrderController extends Controller
         }
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
         $order = PosOrder::findOrFail($id);
 
+        $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
         try {
-            $this->orderService->cancelOrder($order);
+            $this->orderService->cancelOrder($order, Auth::id() ?? 0, $request->input('reason'));
             return response()->json(['success' => true, 'data' => null, 'message' => 'Orden cancelada correctamente']);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);

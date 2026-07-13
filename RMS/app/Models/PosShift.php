@@ -8,15 +8,23 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PosShift extends Model
 {
-    protected $fillable = [];  // read-only from RMS
+    // Only ever upserted by App\Services\Sync\Handlers\PosShiftEventHandler.
+    protected $fillable = [
+        'uuid', 'branch_id', 'user_id', 'terminal_id', 'status',
+        'opening_cash', 'expected_cash',
+        'counted_cash', 'counted_card', 'counted_transfer',
+        'difference', 'opened_at', 'closed_at', 'notes',
+    ];
 
     protected $casts = [
-        'opening_cash'  => 'decimal:2',
-        'expected_cash' => 'decimal:2',
-        'counted_cash'  => 'decimal:2',
-        'difference'    => 'decimal:2',
-        'opened_at'     => 'datetime',
-        'closed_at'     => 'datetime',
+        'opening_cash'     => 'decimal:2',
+        'expected_cash'    => 'decimal:2',
+        'counted_cash'     => 'decimal:2',
+        'counted_card'     => 'decimal:2',
+        'counted_transfer' => 'decimal:2',
+        'difference'       => 'decimal:2',
+        'opened_at'        => 'datetime',
+        'closed_at'        => 'datetime',
     ];
 
     const STATUS_OPEN      = 'open';

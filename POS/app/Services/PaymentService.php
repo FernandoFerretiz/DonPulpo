@@ -4,10 +4,13 @@ namespace App\Services;
 
 use App\Models\PosOrder;
 use App\Models\PosPayment;
+use App\Services\Sync\OutboxRecorder;
 use Illuminate\Support\Carbon;
 
 class PaymentService
 {
+    public function __construct(private OutboxRecorder $outbox) {}
+
     /**
      * Register one or more payments for an order.
      * The sum of all payment amounts must be >= order total.
@@ -60,6 +63,11 @@ class PaymentService
             'status'  => 'paid',
             'paid_at' => $paidAt,
         ]);
+
+        foreach ($records as $payment) {
+            $this->outbox->record('pos_payment.created', $payment, [], ['user', 'order']);
+        }
+        $this->outbox->record('pos_order.paid', $order, [], ['user', 'items.dish', 'payments.user']);
 
         return [
             'payments'      => $records,
