@@ -24,14 +24,14 @@ class DishCategoryController extends Controller
             $categories = $query->get();
 
             $data = $categories->map(fn($cat) => [
-                'id'            => $cat->id,
+                'id'            => (int) $cat->id,
                 'name'          => $cat->name,
                 'slug'          => $cat->slug,
                 'display_order' => $cat->display_order,
                 'status'        => $cat->status,
                 'dishes'        => $cat->activeDishes->map(fn($dish) => [
-                    'id'               => $dish->id,
-                    'dish_category_id' => $dish->dish_category_id,
+                    'id'               => (int) $dish->id,
+                    'dish_category_id' => (int) $dish->dish_category_id,
                     'name'             => $dish->name,
                     'description'      => $dish->description,
                     'image_path'       => $dish->image_path,
