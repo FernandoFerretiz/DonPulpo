@@ -910,7 +910,7 @@
         <div class="col">
           <article class="product-card">
             <div class="food-image">
-              ${d.image_path ? `<img src="${d.image_path}" alt="${d.name}" />` : '<span>🍽️</span>'}
+              ${d.image_path ? `<img src="/storage/${d.image_path}" alt="${d.name}" />` : '<span>🍽️</span>'}
             </div>
             <div class="product-body">
               <div>

@@ -1,14 +1,24 @@
 <?php
 
+use App\Http\Controllers\AdjustmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DiscountCodeController;
 use App\Http\Controllers\DishCategoryController;
 use App\Http\Controllers\DishController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InventoryCategoryController;
+use App\Http\Controllers\InventoryProductController;
 use App\Http\Controllers\PettyCashCategoryController;
 use App\Http\Controllers\PettyCashVoucherController;
+use App\Http\Controllers\PhysicalCountController;
+use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\ShrinkageController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\TransferController;
+use App\Http\Controllers\UnitOfMeasureController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WarehouseController;
 use Illuminate\Support\Facades\Route;
 
 // Auth
@@ -46,5 +56,70 @@ Route::middleware('auth.rms')->group(function () {
         Route::get('/{category}/edit',   [PettyCashCategoryController::class, 'edit'])->name('edit');
         Route::put('/{category}',        [PettyCashCategoryController::class, 'update'])->name('update');
         Route::delete('/{category}',     [PettyCashCategoryController::class, 'destroy'])->name('destroy');
+    });
+
+    // Inventario
+    Route::prefix('inventory')->name('inventory.')->group(function () {
+        Route::resource('categories', InventoryCategoryController::class)->except(['show']);
+        Route::resource('units',      UnitOfMeasureController::class)->except(['show']);
+        Route::resource('warehouses', WarehouseController::class)->except(['show']);
+        Route::resource('suppliers',  SupplierController::class)->except(['show']);
+        Route::resource('products',   InventoryProductController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+
+        // Compras
+        Route::prefix('purchases')->name('purchases.')->group(function () {
+            Route::get('/',                     [PurchaseController::class, 'index'])->name('index');
+            Route::get('/create',               [PurchaseController::class, 'create'])->name('create');
+            Route::post('/',                    [PurchaseController::class, 'store'])->name('store');
+            Route::get('/{purchase}',           [PurchaseController::class, 'show'])->name('show');
+            Route::patch('/{purchase}/receive', [PurchaseController::class, 'receive'])->name('receive');
+            Route::patch('/{purchase}/cancel',  [PurchaseController::class, 'cancel'])->name('cancel');
+            Route::delete('/{purchase}',        [PurchaseController::class, 'destroy'])->name('destroy');
+        });
+
+        // Transferencias
+        Route::prefix('transfers')->name('transfers.')->group(function () {
+            Route::get('/',                      [TransferController::class, 'index'])->name('index');
+            Route::get('/create',                [TransferController::class, 'create'])->name('create');
+            Route::post('/',                     [TransferController::class, 'store'])->name('store');
+            Route::get('/{transfer}',            [TransferController::class, 'show'])->name('show');
+            Route::patch('/{transfer}/complete', [TransferController::class, 'complete'])->name('complete');
+            Route::patch('/{transfer}/cancel',   [TransferController::class, 'cancel'])->name('cancel');
+            Route::delete('/{transfer}',         [TransferController::class, 'destroy'])->name('destroy');
+        });
+
+        // Ajustes
+        Route::prefix('adjustments')->name('adjustments.')->group(function () {
+            Route::get('/',                        [AdjustmentController::class, 'index'])->name('index');
+            Route::get('/create',                  [AdjustmentController::class, 'create'])->name('create');
+            Route::post('/',                       [AdjustmentController::class, 'store'])->name('store');
+            Route::get('/{adjustment}',            [AdjustmentController::class, 'show'])->name('show');
+            Route::patch('/{adjustment}/complete', [AdjustmentController::class, 'complete'])->name('complete');
+            Route::patch('/{adjustment}/cancel',   [AdjustmentController::class, 'cancel'])->name('cancel');
+            Route::delete('/{adjustment}',         [AdjustmentController::class, 'destroy'])->name('destroy');
+        });
+
+        // Mermas
+        Route::prefix('shrinkages')->name('shrinkages.')->group(function () {
+            Route::get('/',                       [ShrinkageController::class, 'index'])->name('index');
+            Route::get('/create',                 [ShrinkageController::class, 'create'])->name('create');
+            Route::post('/',                      [ShrinkageController::class, 'store'])->name('store');
+            Route::get('/{shrinkage}',            [ShrinkageController::class, 'show'])->name('show');
+            Route::patch('/{shrinkage}/complete', [ShrinkageController::class, 'complete'])->name('complete');
+            Route::patch('/{shrinkage}/cancel',   [ShrinkageController::class, 'cancel'])->name('cancel');
+            Route::delete('/{shrinkage}',         [ShrinkageController::class, 'destroy'])->name('destroy');
+        });
+
+        // Conteos físicos
+        Route::prefix('physical-counts')->name('physical-counts.')->group(function () {
+            Route::get('/',                              [PhysicalCountController::class, 'index'])->name('index');
+            Route::get('/create',                        [PhysicalCountController::class, 'create'])->name('create');
+            Route::post('/',                             [PhysicalCountController::class, 'store'])->name('store');
+            Route::get('/{physicalCount}',                [PhysicalCountController::class, 'show'])->name('show');
+            Route::patch('/{physicalCount}/capture',      [PhysicalCountController::class, 'capture'])->name('capture');
+            Route::patch('/{physicalCount}/confirm',      [PhysicalCountController::class, 'confirm'])->name('confirm');
+            Route::patch('/{physicalCount}/cancel',       [PhysicalCountController::class, 'cancel'])->name('cancel');
+            Route::delete('/{physicalCount}',             [PhysicalCountController::class, 'destroy'])->name('destroy');
+        });
     });
 });

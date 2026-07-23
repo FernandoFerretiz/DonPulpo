@@ -31,6 +31,7 @@ RUN a2enmod rewrite headers expires
 
 COPY ./docker/apache/ports.conf /etc/apache2/ports.conf
 COPY ./docker/apache/vhosts/*.conf /etc/apache2/sites-available/
+COPY ./docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 
 RUN a2dissite 000-default.conf \
     && a2ensite pos.conf \

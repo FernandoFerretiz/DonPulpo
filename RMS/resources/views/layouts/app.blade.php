@@ -76,6 +76,35 @@
                                href="{{ route('petty-cash.categories.index') }}">Categorías</a></li>
                     </ul>
                 </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {{ request()->routeIs('inventory*') ? 'active' : '' }}"
+                       href="#" role="button" data-bs-toggle="dropdown">
+                        Inventario
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark">
+                        <li><a class="dropdown-item {{ request()->routeIs('inventory.products*') ? 'active' : '' }}"
+                               href="{{ route('inventory.products.index') }}">Productos</a></li>
+                        <li><a class="dropdown-item {{ request()->routeIs('inventory.categories*') ? 'active' : '' }}"
+                               href="{{ route('inventory.categories.index') }}">Categorías</a></li>
+                        <li><a class="dropdown-item {{ request()->routeIs('inventory.units*') ? 'active' : '' }}"
+                               href="{{ route('inventory.units.index') }}">Unidades de medida</a></li>
+                        <li><a class="dropdown-item {{ request()->routeIs('inventory.warehouses*') ? 'active' : '' }}"
+                               href="{{ route('inventory.warehouses.index') }}">Almacenes</a></li>
+                        <li><a class="dropdown-item {{ request()->routeIs('inventory.suppliers*') ? 'active' : '' }}"
+                               href="{{ route('inventory.suppliers.index') }}">Proveedores</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item {{ request()->routeIs('inventory.purchases*') ? 'active' : '' }}"
+                               href="{{ route('inventory.purchases.index') }}">Compras</a></li>
+                        <li><a class="dropdown-item {{ request()->routeIs('inventory.transfers*') ? 'active' : '' }}"
+                               href="{{ route('inventory.transfers.index') }}">Transferencias</a></li>
+                        <li><a class="dropdown-item {{ request()->routeIs('inventory.adjustments*') ? 'active' : '' }}"
+                               href="{{ route('inventory.adjustments.index') }}">Ajustes</a></li>
+                        <li><a class="dropdown-item {{ request()->routeIs('inventory.shrinkages*') ? 'active' : '' }}"
+                               href="{{ route('inventory.shrinkages.index') }}">Mermas</a></li>
+                        <li><a class="dropdown-item {{ request()->routeIs('inventory.physical-counts*') ? 'active' : '' }}"
+                               href="{{ route('inventory.physical-counts.index') }}">Conteos físicos</a></li>
+                    </ul>
+                </li>
             </ul>
             <ul class="navbar-nav ms-auto align-items-center gap-2">
                 <li class="nav-item">
