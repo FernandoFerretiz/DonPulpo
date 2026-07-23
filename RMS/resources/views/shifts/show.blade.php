@@ -20,6 +20,12 @@
     $discountedOrders = $shift->discountedOrders();
     $discountTotal     = $discountedOrders->sum('discount_amount');
 
+    $ordersByType      = $shift->ordersGroupedByType();
+    $orderTypeSummary  = $shift->orderTypeSummary();
+    $totalOrders       = collect($orderTypeSummary)->sum('count');
+    $totalOrdersAmount = collect($orderTypeSummary)->sum('total');
+    $orderTypeLabels   = ['dine_in' => 'Restaurante', 'takeout' => 'Para llevar', 'delivery' => 'Domicilio'];
+
     $badge = match($shift->status) {
         'open'      => 'info',
         'closed'    => 'success',
@@ -65,6 +71,145 @@
         </div>
     </div>
 </div>
+
+{{-- Pedidos por tipo --}}
+<div class="card shadow-sm mb-3">
+    <div class="card-header">Pedidos por tipo</div>
+    <div class="card-body">
+        <div class="row text-center">
+            @foreach($orderTypeLabels as $type => $label)
+            <div class="col-4">
+                <a href="#" class="text-decoration-none text-reset d-block rounded p-2 order-type-stat"
+                   data-bs-toggle="modal" data-bs-target="#ordersModal-{{ $type }}"
+                   style="cursor:pointer">
+                    <div class="text-muted" style="font-size:.78rem">{{ $label }}</div>
+                    <div class="fw-bold fs-4">{{ $orderTypeSummary[$type]['count'] }}</div>
+                    <div class="text-muted" style="font-size:.82rem">${{ number_format($orderTypeSummary[$type]['total'], 2) }}</div>
+                </a>
+            </div>
+            @endforeach
+        </div>
+        <hr class="my-2">
+        <div class="text-center text-muted" style="font-size:.85rem">
+            Total de pedidos: {{ $totalOrders }} · ${{ number_format($totalOrdersAmount, 2) }}
+        </div>
+    </div>
+</div>
+
+@foreach($orderTypeLabels as $type => $label)
+<div class="modal fade" id="ordersModal-{{ $type }}" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background:var(--navy-deep)">
+                <h5 class="modal-title text-white">Pedidos — {{ $label }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="row g-0">
+                    <div class="col-4 border-end" style="max-height:70vh;overflow-y:auto">
+                        <div class="list-group list-group-flush">
+                            @forelse($ordersByType[$type] as $i => $order)
+                                <button type="button"
+                                        class="list-group-item list-group-item-action order-list-item {{ $i === 0 ? 'active' : '' }}"
+                                        data-target="#order-detail-{{ $type }}-{{ $order->id }}">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-semibold">{{ $order->order_number }}</span>
+                                        <span>${{ number_format($order->total, 2) }}</span>
+                                    </div>
+                                    <small class="text-muted">
+                                        {{ $order->customer_name ?? $order->table_name ?? '—' }}
+                                        @if($order->paid_at) · {{ $order->paid_at->format('H:i') }} @endif
+                                    </small>
+                                </button>
+                            @empty
+                                <div class="p-3 text-center text-muted">No hay pedidos de este tipo.</div>
+                            @endforelse
+                        </div>
+                    </div>
+                    <div class="col-8 p-3 order-detail-container" style="max-height:70vh;overflow-y:auto">
+                        @forelse($ordersByType[$type] as $i => $order)
+                            <div id="order-detail-{{ $type }}-{{ $order->id }}" class="order-detail-panel {{ $i === 0 ? '' : 'd-none' }}">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="fw-bold mb-0">Orden {{ $order->order_number }}</h6>
+                                        <small class="text-muted">
+                                            {{ $order->customer_name ?? '—' }}
+                                            @if($order->table_name) · Mesa {{ $order->table_name }} @endif
+                                        </small>
+                                    </div>
+                                    <small class="text-muted">{{ $order->paid_at?->format('d/m/Y H:i') ?? '—' }}</small>
+                                </div>
+                                <div class="table-responsive mb-2">
+                                    <table class="table table-sm mb-0" style="font-size:.85rem">
+                                        <thead>
+                                            <tr>
+                                                <th>Platillo</th>
+                                                <th class="text-end">Cant.</th>
+                                                <th class="text-end">Precio</th>
+                                                <th class="text-end">Importe</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($order->items as $item)
+                                            <tr>
+                                                <td>{{ $item->name_snapshot }}</td>
+                                                <td class="text-end">{{ $item->quantity }}</td>
+                                                <td class="text-end">${{ number_format($item->unit_price, 2) }}</td>
+                                                <td class="text-end">${{ number_format($item->line_total, 2) }}</td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div style="font-size:.85rem">
+                                    <div class="d-flex justify-content-between"><span>Subtotal</span><span>${{ number_format($order->subtotal, 2) }}</span></div>
+                                    @if($order->discount_code)
+                                    <div class="d-flex justify-content-between text-danger">
+                                        <span>Descuento ({{ $order->discount_code }}, {{ number_format($order->discount_percent, 2) }}%)</span>
+                                        <span>-${{ number_format($order->discount_amount, 2) }}</span>
+                                    </div>
+                                    @endif
+                                    <div class="d-flex justify-content-between"><span>Impuesto</span><span>${{ number_format($order->tax, 2) }}</span></div>
+                                    <div class="d-flex justify-content-between"><span>Propina</span><span>${{ number_format($order->tip, 2) }}</span></div>
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between fw-bold"><span>Total</span><span>${{ number_format($order->total, 2) }}</span></div>
+                                </div>
+                                @if($order->payments->isNotEmpty())
+                                <hr class="my-2">
+                                <div style="font-size:.85rem">
+                                    <div class="fw-semibold mb-1">Pagos</div>
+                                    @foreach($order->payments as $payment)
+                                    <div class="d-flex justify-content-between">
+                                        <span>{{ ucfirst($payment->method) }}</span>
+                                        <span>${{ number_format($payment->amount, 2) }}</span>
+                                    </div>
+                                    @endforeach
+                                </div>
+                                @endif
+                            </div>
+                        @empty
+                            <p class="text-center text-muted py-5">Selecciona un pedido de la lista.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
+<script>
+document.querySelectorAll('.order-list-item').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var container = this.closest('.modal-body').querySelector('.order-detail-container');
+        container.querySelectorAll('.order-detail-panel').forEach(function (p) { p.classList.add('d-none'); });
+        var target = document.querySelector(this.dataset.target);
+        if (target) target.classList.remove('d-none');
+        this.closest('.list-group').querySelectorAll('.order-list-item').forEach(function (b) { b.classList.remove('active'); });
+        this.classList.add('active');
+    });
+});
+</script>
 
 {{-- Resumen de caja: efectivo, tarjeta, transferencia, diferencias --}}
 <div class="row mb-3">

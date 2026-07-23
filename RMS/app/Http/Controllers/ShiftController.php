@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PosPayment;
 use App\Models\PosShift;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -35,8 +37,11 @@ class ShiftController extends Controller
             'user',
             'cashMovements' => fn ($q) => $q->orderBy('created_at'),
             'cashMovements.user',
-            'cashMovements.reference',
-            'cashMovements.reference.order',
+            // "reference" es polimórfico (PosPayment o PettyCashVoucher); solo PosPayment
+            // tiene relación "order", así que se declara el eager load por tipo con morphWith.
+            'cashMovements.reference' => fn (MorphTo $morphTo) => $morphTo->morphWith([
+                PosPayment::class => ['order.items', 'order.payments'],
+            ]),
             'pettyCashVouchers.category',
             'pettyCashVouchers.requestedBy',
         ]);

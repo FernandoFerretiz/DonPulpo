@@ -101,18 +101,43 @@ class PosShift extends Model
     }
 
     /**
-     * Pedidos con descuento aplicado, pagados durante este corte.
-     * No hay pos_shift_id en pos_orders: se llega a la orden a través
-     * del pago (CashMovement::reference) registrado en este corte.
+     * Pedidos pagados durante este corte. No hay pos_shift_id en pos_orders:
+     * se llega a la orden a través del pago (CashMovement::reference).
      */
-    public function discountedOrders()
+    public function orders()
     {
         return $this->cashMovements
             ->pluck('reference')
             ->filter(fn ($ref) => $ref instanceof PosPayment)
             ->pluck('order')
             ->filter()
-            ->unique('id')
-            ->filter(fn ($order) => !empty($order->discount_code));
+            ->unique('id');
+    }
+
+    /**
+     * Pedidos con descuento aplicado, pagados durante este corte.
+     */
+    public function discountedOrders()
+    {
+        return $this->orders()->filter(fn ($order) => !empty($order->discount_code));
+    }
+
+    public function ordersGroupedByType(): array
+    {
+        $grouped = $this->orders()->groupBy('order_type');
+
+        return collect(['dine_in', 'takeout', 'delivery'])
+            ->mapWithKeys(fn ($type) => [$type => $grouped->get($type, collect())->values()])
+            ->all();
+    }
+
+    public function orderTypeSummary(): array
+    {
+        return collect($this->ordersGroupedByType())
+            ->map(fn ($orders) => [
+                'count' => $orders->count(),
+                'total' => (float) $orders->sum('total'),
+            ])
+            ->all();
     }
 }
