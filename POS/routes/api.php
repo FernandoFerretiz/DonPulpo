@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\DiscountCodeController;
 use App\Http\Controllers\Api\V1\DishCategoryController;
 use App\Http\Controllers\Api\V1\DishController;
 use App\Http\Controllers\Api\V1\OrderController;
@@ -16,6 +17,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     // Menú (lectura pública dentro del contexto POS)
     Route::get('dish-categories', [DishCategoryController::class, 'index']);
     Route::get('dishes', [DishController::class, 'index']);
+
+    // Códigos de descuento
+    Route::post('discount-codes/validate', [DiscountCodeController::class, 'validateCode']);
 
     // Órdenes
     Route::get('orders', [OrderController::class, 'index']);

@@ -2,17 +2,12 @@
 
 namespace App\Models;
 
-use App\Concerns\BelongsToCurrentBranch;
-use App\Concerns\HasSyncableUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PosOrder extends Model
 {
-    use HasSyncableUuid;
-    use BelongsToCurrentBranch;
-
     protected $table = 'pos_orders';
 
     protected $fillable = [
@@ -24,26 +19,25 @@ class PosOrder extends Model
         'subtotal',
         'tax',
         'tip',
+        'discount_code',
+        'discount_percent',
+        'discount_amount',
         'total',
         'status',
         'notes',
         'paid_at',
-        'branch_id',
-        'sync_status',
-        'cancelled_reason',
-        'cancelled_by',
-        'cancelled_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'subtotal'     => 'decimal:2',
-            'tax'          => 'decimal:2',
-            'tip'          => 'decimal:2',
-            'total'        => 'decimal:2',
-            'paid_at'      => 'datetime',
-            'cancelled_at' => 'datetime',
+            'subtotal'         => 'decimal:2',
+            'tax'              => 'decimal:2',
+            'tip'              => 'decimal:2',
+            'discount_percent' => 'decimal:2',
+            'discount_amount'  => 'decimal:2',
+            'total'            => 'decimal:2',
+            'paid_at'          => 'datetime',
         ];
     }
 
@@ -60,10 +54,5 @@ class PosOrder extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function cancelledByUser(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'cancelled_by');
     }
 }

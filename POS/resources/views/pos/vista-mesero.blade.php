@@ -43,6 +43,8 @@
       display: flex; align-items: center; justify-content: space-between;
       gap: 12px;
     }
+    .header-brand-row { display: flex; align-items: center; gap: 10px; }
+    .header-logo  { width: 34px; height: 34px; object-fit: contain; flex: 0 0 auto; }
     .header-brand { color: var(--gold); font-weight: 800; font-size: 20px; letter-spacing: -.5px; line-height: 1; }
     .header-sub   { color: rgba(255,255,255,.55); font-size: 12px; font-weight: 500; margin-top: 2px; }
     .active-badge {
@@ -314,9 +316,12 @@
 
 <!-- ── Header ── -->
 <header class="app-header">
-  <div>
-    <div class="header-brand">Don Pulpo</div>
-    <div class="header-sub">{{ Auth::user()->name }}</div>
+  <div class="header-brand-row">
+    <img class="header-logo" src="{{ asset('assets/images/logo.png') }}" alt="Don Pulpo" />
+    <div>
+      <div class="header-brand">Don Pulpo</div>
+      <div class="header-sub">{{ Auth::user()->name }}</div>
+    </div>
   </div>
   <div id="activeBadge" class="active-badge">Activas: —</div>
   <form method="POST" action="{{ route('logout') }}" style="margin:0;">
@@ -784,6 +789,5 @@ function showToast(msg, type = '') {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 </script>
-@include('partials.session-timeout')
 </body>
 </html>

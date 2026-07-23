@@ -4,20 +4,47 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class CashMovement extends Model
 {
-    protected $fillable = [
-        'uuid', 'branch_id', 'pos_shift_id', 'user_id', 'type',
-        'amount', 'payment_method', 'description',
+    protected $fillable = [];  // read-only from RMS
+
+    protected $casts = [
+        'amount' => 'decimal:2',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'amount' => 'decimal:2',
-        ];
-    }
+    const TYPE_FONDO_INICIAL       = 'FONDO_INICIAL';
+    const TYPE_VENTA_EFECTIVO      = 'VENTA_EFECTIVO';
+    const TYPE_VENTA_TARJETA       = 'VENTA_TARJETA';
+    const TYPE_VENTA_TRANSFERENCIA = 'VENTA_TRANSFERENCIA';
+    const TYPE_INGRESO_MANUAL      = 'INGRESO_MANUAL';
+    const TYPE_RETIRO_EFECTIVO     = 'RETIRO_EFECTIVO';
+    const TYPE_VALE_CAJA_CHICA     = 'VALE_CAJA_CHICA';
+    const TYPE_DEVOLUCION_EFECTIVO = 'DEVOLUCION_EFECTIVO';
+
+    const INCOME_TYPES = [
+        self::TYPE_FONDO_INICIAL,
+        self::TYPE_VENTA_EFECTIVO,
+        self::TYPE_INGRESO_MANUAL,
+    ];
+
+    const EXPENSE_TYPES = [
+        self::TYPE_RETIRO_EFECTIVO,
+        self::TYPE_VALE_CAJA_CHICA,
+        self::TYPE_DEVOLUCION_EFECTIVO,
+    ];
+
+    const REPORTING_TYPES = [
+        self::TYPE_VENTA_TARJETA,
+        self::TYPE_VENTA_TRANSFERENCIA,
+    ];
+
+    const MANUAL_TYPES = [
+        self::TYPE_INGRESO_MANUAL,
+        self::TYPE_RETIRO_EFECTIVO,
+        self::TYPE_DEVOLUCION_EFECTIVO,
+    ];
 
     public function shift(): BelongsTo
     {
@@ -27,5 +54,35 @@ class CashMovement extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function reference(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    public function getTypeLabel(): string
+    {
+        return match ($this->type) {
+            self::TYPE_FONDO_INICIAL       => 'Fondo inicial',
+            self::TYPE_VENTA_EFECTIVO      => 'Venta efectivo',
+            self::TYPE_VENTA_TARJETA       => 'Venta tarjeta',
+            self::TYPE_VENTA_TRANSFERENCIA => 'Venta transferencia',
+            self::TYPE_INGRESO_MANUAL      => 'Ingreso manual',
+            self::TYPE_RETIRO_EFECTIVO     => 'Retiro',
+            self::TYPE_VALE_CAJA_CHICA     => 'Vale caja chica',
+            self::TYPE_DEVOLUCION_EFECTIVO => 'Devolución',
+            default                        => $this->type,
+        };
+    }
+
+    public function isIncome(): bool
+    {
+        return in_array($this->type, self::INCOME_TYPES);
+    }
+
+    public function isExpense(): bool
+    {
+        return in_array($this->type, self::EXPENSE_TYPES);
     }
 }

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DishCategory extends Model
 {
-    protected $fillable = ['uuid', 'name', 'slug', 'display_order', 'status'];
+    protected $fillable = ['name', 'slug', 'display_order', 'status'];
 
     public function dishes(): HasMany
     {

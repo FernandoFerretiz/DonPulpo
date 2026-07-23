@@ -9,10 +9,7 @@ class PosPayment extends Model
 {
     protected $table = 'pos_payments';
 
-    protected $fillable = [
-        'uuid', 'branch_id', 'pos_order_id', 'user_id',
-        'method', 'amount', 'change_amount', 'status', 'paid_at',
-    ];
+    protected $fillable = [];  // read-only from RMS
 
     protected function casts(): array
     {
@@ -26,10 +23,5 @@ class PosPayment extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(PosOrder::class, 'pos_order_id');
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
     }
 }

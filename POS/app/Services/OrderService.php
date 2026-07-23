@@ -5,54 +5,68 @@ namespace App\Services;
 use App\Models\Dish;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
-use App\Services\Sync\OutboxRecorder;
 use Illuminate\Support\Str;
 
 class OrderService
 {
-    public function __construct(private OutboxRecorder $outbox) {}
-
     public function createOrder(array $data, int $userId): PosOrder
     {
         $items = $data['items'] ?? [];
 
         $subtotal = collect($items)->sum(fn($i) => ($i['unit_price'] ?? 0) * ($i['quantity'] ?? 1));
-        // Respect incoming tax (0 when IVA is disabled from the frontend)
-        $tax      = isset($data['tax']) ? round((float) $data['tax'], 2) : round($subtotal * 0.16, 2);
-        $tip      = round($data['tip'] ?? 0, 2);
-        $total    = round($subtotal + $tax + $tip, 2);
+        // Los precios ya incluyen IVA, así que no se suma impuesto adicional por defecto.
+        $tax             = isset($data['tax']) ? round((float) $data['tax'], 2) : 0;
+        $tip             = round($data['tip'] ?? 0, 2);
+        $discountPercent = isset($data['discount_percent']) && $data['discount_percent'] !== null
+            ? round((float) $data['discount_percent'], 2)
+            : null;
+        $discountAmount  = $discountPercent ? round($subtotal * $discountPercent / 100, 2) : 0;
+        $total           = round($subtotal - $discountAmount + $tax + $tip, 2);
 
         $order = PosOrder::create([
-            'order_number'  => $this->generateOrderNumber(),
-            'user_id'       => $userId,
-            'customer_name' => $data['customer_name'] ?? null,
-            'table_name'    => $data['table_name'] ?? null,
-            'order_type'    => $data['order_type'] ?? 'dine_in',
-            'subtotal'      => $subtotal,
-            'tax'           => $tax,
-            'tip'           => $tip,
-            'total'         => $total,
-            'status'        => 'open',
-            'notes'         => $data['notes'] ?? null,
+            'order_number'      => $this->generateOrderNumber(),
+            'user_id'           => $userId,
+            'customer_name'     => $data['customer_name'] ?? null,
+            'table_name'        => $data['table_name'] ?? null,
+            'order_type'        => $data['order_type'] ?? 'dine_in',
+            'subtotal'          => $subtotal,
+            'tax'               => $tax,
+            'tip'               => $tip,
+            'discount_code'     => $data['discount_code'] ?? null,
+            'discount_percent'  => $discountPercent,
+            'discount_amount'   => $discountAmount,
+            'total'             => $total,
+            'status'            => 'open',
+            'notes'             => $data['notes'] ?? null,
         ]);
 
         foreach ($items as $item) {
-            $this->insertItem($order, $item);
+            $this->addItemToOrder($order, $item);
         }
 
-        $order = $order->load('items');
-        $this->outbox->record('pos_order.created', $order, [], ['user', 'items.dish']);
-
-        return $order;
+        return $order->load('items');
     }
 
     public function addItemToOrder(PosOrder $order, array $item): PosOrderItem
     {
         $this->assertModifiable($order);
 
-        $orderItem = $this->insertItem($order, $item);
+        $dish     = isset($item['dish_id']) ? Dish::find($item['dish_id']) : null;
+        $name     = $item['name_snapshot'] ?? $dish?->name ?? 'Producto';
+        $price    = (float) ($item['unit_price'] ?? $dish?->price ?? 0);
+        $quantity = (int) ($item['quantity'] ?? 1);
+
+        $orderItem = PosOrderItem::create([
+            'pos_order_id'  => $order->id,
+            'dish_id'       => $dish?->id,
+            'name_snapshot' => $name,
+            'unit_price'    => $price,
+            'quantity'      => $quantity,
+            'line_total'    => round($price * $quantity, 2),
+            'notes'         => $item['notes'] ?? null,
+        ]);
+
         $this->recalculateTotals($order);
-        $this->outbox->record('pos_order.item_added', $order, ['item_uuid' => $orderItem->uuid], ['user', 'items.dish']);
 
         return $orderItem;
     }
@@ -67,7 +81,6 @@ class OrderService
         ]);
 
         $this->recalculateTotals($order);
-        $this->outbox->record('pos_order.item_updated', $order, ['item_uuid' => $item->uuid], ['user', 'items.dish']);
 
         return $item->fresh();
     }
@@ -75,59 +88,75 @@ class OrderService
     public function removeItem(PosOrder $order, PosOrderItem $item): void
     {
         $this->assertModifiable($order);
-        $itemUuid = $item->uuid;
         $item->delete();
         $this->recalculateTotals($order);
-        $this->outbox->record('pos_order.item_removed', $order, ['item_uuid' => $itemUuid], ['user', 'items.dish']);
     }
 
-    public function recalculateTotals(PosOrder $order): void
+    public function recalculateTotals(PosOrder $order, ?float $taxOverride = null, ?float $tipOverride = null): void
     {
         $order->refresh();
         $subtotal = $order->items()->sum('line_total');
-        // Preserve the original tax rate (0% if IVA was disabled when the order was created)
-        $taxRate  = ($order->subtotal > 0) ? ($order->tax / $order->subtotal) : 0.16;
-        $tax      = round($subtotal * $taxRate, 2);
-        $total    = round($subtotal + $tax + $order->tip, 2);
+        $tip      = $tipOverride !== null ? round($tipOverride, 2) : $order->tip;
+        // Los precios ya incluyen IVA: se preserva la proporción de impuesto que tuviera la orden (normalmente 0).
+        $taxRate        = ($order->subtotal > 0) ? ($order->tax / $order->subtotal) : 0;
+        $tax            = $taxOverride !== null ? round($taxOverride, 2) : round($subtotal * $taxRate, 2);
+        $discountAmount = $order->discount_percent ? round($subtotal * $order->discount_percent / 100, 2) : 0;
+        $total          = round($subtotal - $discountAmount + $tax + $tip, 2);
 
         $order->update([
-            'subtotal' => $subtotal,
-            'tax'      => $tax,
-            'total'    => $total,
+            'subtotal'         => $subtotal,
+            'tax'              => $tax,
+            'tip'              => $tip,
+            'discount_amount'  => $discountAmount,
+            'total'            => $total,
         ]);
     }
 
-    public function cancelOrder(PosOrder $order, int $userId, ?string $reason = null): PosOrder
+    /**
+     * Update an existing order's fields and, when items are provided, replace its item list wholesale
+     * (mirrors createOrder's item handling so a re-saved order behaves like a fresh save).
+     */
+    public function updateOrder(PosOrder $order, array $data): PosOrder
     {
         $this->assertModifiable($order);
-        $order->update([
-            'status'           => 'cancelled',
-            'cancelled_by'     => $userId,
-            'cancelled_at'     => now(),
-            'cancelled_reason' => $reason,
-        ]);
-        $order = $order->fresh();
-        $this->outbox->record('pos_order.cancelled', $order, [], ['user', 'items.dish', 'cancelledByUser']);
 
-        return $order;
+        $fields = [];
+        foreach (['customer_name', 'table_name', 'order_type', 'notes', 'discount_code', 'discount_percent'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $fields[$field] = $data[$field];
+            }
+        }
+        if (array_key_exists('discount_percent', $fields) && $fields['discount_percent'] !== null) {
+            $fields['discount_percent'] = round((float) $fields['discount_percent'], 2);
+        }
+        if ($fields) {
+            $order->update($fields);
+        }
+
+        if (array_key_exists('items', $data)) {
+            $order->items()->delete();
+            foreach ($data['items'] as $item) {
+                $this->addItemToOrder($order, $item);
+            }
+        }
+
+        if (array_key_exists('tip', $data) || array_key_exists('tax', $data) || array_key_exists('items', $data)
+            || array_key_exists('discount_percent', $data) || array_key_exists('discount_code', $data)) {
+            $this->recalculateTotals(
+                $order,
+                array_key_exists('tax', $data) ? (float) $data['tax'] : null,
+                array_key_exists('tip', $data) ? (float) $data['tip'] : null
+            );
+        }
+
+        return $order->fresh(['items']);
     }
 
-    private function insertItem(PosOrder $order, array $item): PosOrderItem
+    public function cancelOrder(PosOrder $order): PosOrder
     {
-        $dish     = isset($item['dish_id']) ? Dish::find($item['dish_id']) : null;
-        $name     = $item['name_snapshot'] ?? $dish?->name ?? 'Producto';
-        $price    = (float) ($item['unit_price'] ?? $dish?->price ?? 0);
-        $quantity = (int) ($item['quantity'] ?? 1);
-
-        return PosOrderItem::create([
-            'pos_order_id'  => $order->id,
-            'dish_id'       => $dish?->id,
-            'name_snapshot' => $name,
-            'unit_price'    => $price,
-            'quantity'      => $quantity,
-            'line_total'    => round($price * $quantity, 2),
-            'notes'         => $item['notes'] ?? null,
-        ]);
+        $this->assertModifiable($order);
+        $order->update(['status' => 'cancelled']);
+        return $order->fresh();
     }
 
     private function assertModifiable(PosOrder $order): void

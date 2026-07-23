@@ -1,0 +1,12 @@
+[28-Jun-2026 19:04:48 UTC] PHP Warning:  require(/home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/index.php on line 14
+[28-Jun-2026 19:04:48 UTC] PHP Warning:  require(/home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/index.php on line 14
+[28-Jun-2026 19:04:48 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/../vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/index.php:14
+Stack trace:
+#0 {main}
+  thrown in /home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/index.php on line 14
+[28-Jun-2026 19:05:55 UTC] PHP Warning:  require(/home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/index.php on line 14
+[28-Jun-2026 19:05:55 UTC] PHP Warning:  require(/home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/index.php on line 14
+[28-Jun-2026 19:05:55 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/../vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/index.php:14
+Stack trace:
+#0 {main}
+  thrown in /home/lb4xy11qd55z/public_html/donpulpo.com.mx/landing/public/index.php on line 14

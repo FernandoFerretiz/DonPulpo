@@ -2,16 +2,11 @@
 
 namespace App\Models;
 
-use App\Concerns\BelongsToCurrentBranch;
-use App\Concerns\HasSyncableUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PosOrderItem extends Model
 {
-    use HasSyncableUuid;
-    use BelongsToCurrentBranch;
-
     protected $table = 'pos_order_items';
 
     protected $fillable = [
@@ -22,8 +17,6 @@ class PosOrderItem extends Model
         'quantity',
         'line_total',
         'notes',
-        'branch_id',
-        'sync_status',
     ];
 
     protected function casts(): array

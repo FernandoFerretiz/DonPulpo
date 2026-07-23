@@ -2,16 +2,11 @@
 
 namespace App\Models;
 
-use App\Concerns\BelongsToCurrentBranch;
-use App\Concerns\HasSyncableUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PosPayment extends Model
 {
-    use HasSyncableUuid;
-    use BelongsToCurrentBranch;
-
     protected $table = 'pos_payments';
 
     protected $fillable = [
@@ -22,8 +17,6 @@ class PosPayment extends Model
         'change_amount',
         'status',
         'paid_at',
-        'branch_id',
-        'sync_status',
     ];
 
     protected function casts(): array
@@ -38,10 +31,5 @@ class PosPayment extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(PosOrder::class, 'pos_order_id');
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
     }
 }

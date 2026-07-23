@@ -48,6 +48,8 @@ class OrderController extends Controller
             'customer_name'     => 'nullable|string|max:255',
             'table_name'        => 'nullable|string|max:100',
             'order_type'        => 'nullable|in:dine_in,takeout,delivery',
+            'discount_code'     => 'nullable|string|max:50',
+            'discount_percent'  => 'nullable|numeric|min:0|max:100',
         ]);
 
         try {
@@ -69,37 +71,36 @@ class OrderController extends Controller
         $order = PosOrder::findOrFail($id);
 
         $request->validate([
-            'customer_name' => 'nullable|string|max:255',
-            'table_name'    => 'nullable|string|max:100',
-            'order_type'    => 'nullable|in:dine_in,takeout,delivery',
-            'notes'         => 'nullable|string|max:500',
-            'tip'           => 'nullable|numeric|min:0',
+            'customer_name'          => 'nullable|string|max:255',
+            'table_name'             => 'nullable|string|max:100',
+            'order_type'             => 'nullable|in:dine_in,takeout,delivery',
+            'notes'                  => 'nullable|string|max:500',
+            'tip'                    => 'nullable|numeric|min:0',
+            'tax'                    => 'nullable|numeric|min:0',
+            'items'                  => 'nullable|array|min:1',
+            'items.*.dish_id'        => 'nullable|integer',
+            'items.*.name_snapshot'  => 'required_without:items.*.dish_id|string',
+            'items.*.unit_price'     => 'required_with:items|numeric|min:0',
+            'items.*.quantity'       => 'required_with:items|integer|min:1',
+            'items.*.notes'          => 'nullable|string|max:255',
+            'discount_code'          => 'nullable|string|max:50',
+            'discount_percent'       => 'nullable|numeric|min:0|max:100',
         ]);
 
         try {
-            if ($request->has('tip')) {
-                $order->update(['tip' => $request->tip]);
-                $this->orderService->recalculateTotals($order);
-            }
-
-            $order->update($request->only(['customer_name', 'table_name', 'order_type', 'notes']));
-
-            return response()->json(['success' => true, 'data' => $order->fresh(['items']), 'message' => 'Orden actualizada correctamente']);
+            $order = $this->orderService->updateOrder($order, $request->all());
+            return response()->json(['success' => true, 'data' => $order, 'message' => 'Orden actualizada correctamente']);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
 
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(int $id): JsonResponse
     {
         $order = PosOrder::findOrFail($id);
 
-        $request->validate([
-            'reason' => 'nullable|string|max:500',
-        ]);
-
         try {
-            $this->orderService->cancelOrder($order, Auth::id() ?? 0, $request->input('reason'));
+            $this->orderService->cancelOrder($order);
             return response()->json(['success' => true, 'data' => null, 'message' => 'Orden cancelada correctamente']);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);

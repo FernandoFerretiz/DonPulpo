@@ -14,7 +14,6 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::middleware('auth.pos')->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
-    Route::post('/keep-alive', fn() => response()->noContent())->name('keep-alive');
     Route::get('/home', [HomeController::class, 'index'])->name('home.alt');
     Route::get('/pos', [PosController::class, 'index'])->name('pos');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -33,12 +32,7 @@ Route::middleware('auth.pos')->group(function () {
         Route::post('shifts/{id}/movements',  [ShiftController::class, 'addMovement']);
 
         // Vales de caja chica
-        Route::get('petty-cash/vouchers',                    [PettyCashController::class, 'authorizedVouchers']);
-        Route::get('petty-cash/vouchers/history',             [PettyCashController::class, 'index']);
-        Route::post('petty-cash/vouchers',                    [PettyCashController::class, 'store']);
-        Route::patch('petty-cash/vouchers/{id}/authorize',    [PettyCashController::class, 'authorize']);
-        Route::patch('petty-cash/vouchers/{id}/reject',       [PettyCashController::class, 'reject']);
-        Route::patch('petty-cash/vouchers/{id}/cancel',       [PettyCashController::class, 'cancel']);
-        Route::post('petty-cash/vouchers/{id}/pay',           [PettyCashController::class, 'pay']);
+        Route::get('petty-cash/vouchers',             [PettyCashController::class, 'authorizedVouchers']);
+        Route::post('petty-cash/vouchers/{id}/pay',   [PettyCashController::class, 'pay']);
     });
 });

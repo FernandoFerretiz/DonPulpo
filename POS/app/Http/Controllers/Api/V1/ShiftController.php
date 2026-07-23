@@ -119,7 +119,7 @@ class ShiftController extends Controller
         $request->validate([
             'type'        => 'required|in:' . implode(',', CashMovement::MANUAL_TYPES),
             'amount'      => 'required|numeric|min:0.01',
-            'description' => 'nullable|string|max:500',
+            'description' => 'required|string|max:500',
         ]);
 
         try {

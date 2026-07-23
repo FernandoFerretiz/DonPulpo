@@ -59,7 +59,22 @@
                     <a class="nav-link {{ request()->routeIs('dishes*') ? 'active' : '' }}" href="{{ route('dishes.index') }}">Platillos</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('petty-cash.categories*') ? 'active' : '' }}" href="{{ route('petty-cash.categories.index') }}">Caja chica</a>
+                    <a class="nav-link {{ request()->routeIs('shifts*') ? 'active' : '' }}" href="{{ route('shifts.index') }}">Cortes de caja</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('discount-codes*') ? 'active' : '' }}" href="{{ route('discount-codes.index') }}">Descuentos</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {{ request()->routeIs('petty-cash*') ? 'active' : '' }}"
+                       href="#" role="button" data-bs-toggle="dropdown">
+                        Caja chica
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark">
+                        <li><a class="dropdown-item {{ request()->routeIs('petty-cash.vouchers*') ? 'active' : '' }}"
+                               href="{{ route('petty-cash.vouchers.index') }}">Vales</a></li>
+                        <li><a class="dropdown-item {{ request()->routeIs('petty-cash.categories*') ? 'active' : '' }}"
+                               href="{{ route('petty-cash.categories.index') }}">Categorías</a></li>
+                    </ul>
                 </li>
             </ul>
             <ul class="navbar-nav ms-auto align-items-center gap-2">
@@ -103,6 +118,5 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-@include('partials.session-timeout')
 </body>
 </html>

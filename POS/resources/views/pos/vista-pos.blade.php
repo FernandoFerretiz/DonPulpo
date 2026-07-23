@@ -75,7 +75,8 @@
     }
     body.sidebar-open .sidebar { transform: translateX(0); }
     .brand { min-height: 112px; display: grid; place-items: center; text-align: center; margin-bottom: 16px; padding-top: 8px; }
-    .brand-octo { width: 64px; height: 64px; display: grid; place-items: center; margin: 0 auto 4px; border-radius: 24px; background: rgba(203,131,23,.18); color: var(--gold); font-size: 42px; box-shadow: inset 0 0 0 1px rgba(203,131,23,.30); }
+    .brand-octo { width: 64px; height: 64px; display: grid; place-items: center; margin: 0 auto 4px; border-radius: 24px; background: rgba(203,131,23,.18); color: var(--gold); font-size: 42px; box-shadow: inset 0 0 0 1px rgba(203,131,23,.30); overflow: hidden; }
+    .brand-octo img { width: 100%; height: 100%; object-fit: contain; }
     .brand h1 { margin: 0; font-size: 30px; letter-spacing: .05em; line-height: 1; }
     .brand p  { margin: 7px 0 0; color: var(--gold); font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
     .nav-list { display: grid; gap: 10px; margin: 8px 0 auto; }
@@ -94,7 +95,8 @@
     .pos-page  { width: min(1880px,100%); margin: 0 auto; }
     .topbar { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 10px 8px 74px; }
     .branch { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .branch-badge { width: 48px; height: 48px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); font-size: 26px; }
+    .branch-badge { width: 48px; height: 48px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); font-size: 26px; overflow: hidden; }
+    .branch-badge img { width: 100%; height: 100%; object-fit: contain; }
     .branch-text small  { display: block; color: var(--ink-500); font-weight: 750; font-size: 13px; }
     .branch-text strong { display: block; font-size: clamp(18px,2vw,23px); }
     .top-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -220,8 +222,6 @@
     .totals { padding: 12px 18px 16px; display: grid; gap: 10px; }
     .total-line { display: flex; justify-content: space-between; gap: 12px; color: var(--ink-700); font-weight: 780; }
     .total-line strong { color: var(--ink-900); }
-    .iva-label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
-    .iva-toggle { width: 20px; height: 20px; accent-color: var(--gold); cursor: pointer; }
 
     .tip-box p { margin: 2px 0 8px; color: var(--ink-700); font-weight: 820; font-size: 15px; }
     .tip-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
@@ -373,8 +373,8 @@
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-octo">🐙</div>
-      <div><h1>DON PULPO</h1><p>Mariscos &amp; Más</p></div>
+      <div class="brand-octo"><img src="{{ asset('assets/images/logo.png') }}" alt="Don Pulpo" /></div>
+      <div><h1>DON PULPO</h1><p>Desde el mar hasta tu paladar</p></div>
     </div>
     <nav class="nav-list">
       <a href="{{ route('pos') }}"       class="nav-link active"><span class="nav-icon">🛒</span>Punto de Venta</a>
@@ -471,6 +471,40 @@
         <button class="order-type-btn" data-type="delivery" type="button">
           <span class="ot-icon">🛵</span>A domicilio
         </button>
+      </div>
+
+      <div class="pay-section-label">Propina</div>
+      <div class="tip-row" id="tipRow">
+        <button class="tip-btn" data-tip="0.10" type="button">10%</button>
+        <button class="tip-btn" data-tip="0.15" type="button">15%</button>
+        <button class="tip-btn" data-tip="0.20" type="button">20%</button>
+        <button class="tip-btn active" data-tip="0" type="button">Sin propina</button>
+      </div>
+      <div class="tip-amount-row" style="margin-bottom:18px">
+        <span class="tip-amount-prefix">$</span>
+        <input type="number" id="tipAmountInput" class="tip-amount-input"
+               min="0" step="1" placeholder="Monto libre..." />
+      </div>
+
+      <div class="pay-section-label">Código de descuento</div>
+      <div class="discount-row" id="discountInputRow" style="display:flex; gap:8px; margin-bottom:18px">
+        <input type="text" id="discountCodeInput" class="tip-amount-input"
+               style="border:1.5px solid var(--line); border-radius:14px; padding:0 12px; height:46px; text-transform:uppercase"
+               placeholder="Ej: PROMO10" />
+        <button class="outline-btn" id="applyDiscountBtn" type="button" style="min-height:46px; padding:0 18px; white-space:nowrap">Aplicar</button>
+      </div>
+      <div id="discountAppliedRow" style="display:none; justify-content:space-between; align-items:center; background:var(--gold-100); border-radius:14px; padding:10px 16px; margin-bottom:18px">
+        <span id="discountAppliedText" style="font-weight:800; font-size:13px; color:var(--gold-dark)"></span>
+        <button class="trash-btn" id="removeDiscountBtn" type="button" style="width:34px; height:34px; font-size:14px">✕</button>
+      </div>
+
+      <div class="pay-summary-box" style="margin-bottom:18px">
+        <div class="pay-summary-line"><span>Subtotal</span><strong id="paySubtotalText">$0.00</strong></div>
+        <div class="pay-summary-line" id="payDiscountRow" style="display:none">
+          <span>Descuento</span><strong id="payDiscountText" style="color:var(--coral-600)">-$0.00</strong>
+        </div>
+        <div class="pay-summary-line"><span>Propina</span><strong id="payTipText">$0.00</strong></div>
+        <div class="pay-summary-line" style="font-size:17px"><span>Total</span><strong id="payTotalBreakdownText">$0.00</strong></div>
       </div>
 
       <div class="pay-section-label">Métodos de pago</div>
@@ -597,7 +631,7 @@
         <input id="manualMovAmount" type="number" min="0.01" step="0.01" placeholder="0.00" />
       </div>
       <div class="field">
-        <label for="manualMovDesc">Descripción (opcional)</label>
+        <label for="manualMovDesc">Descripción <span style="color:var(--coral-600)">*</span></label>
         <input id="manualMovDesc" type="text" placeholder="Ej: Compra de servilletas" />
       </div>
       <div class="modal-actions">
@@ -648,7 +682,7 @@
     <section class="pos-page">
       <header class="topbar">
         <div class="branch">
-          <div class="branch-badge">🐙</div>
+          <div class="branch-badge"><img src="{{ asset('assets/images/logo.png') }}" alt="Don Pulpo" /></div>
           <div class="branch-text">
             <small>Sucursal</small>
             <strong>Don Pulpo</strong>
@@ -710,39 +744,19 @@
           </div>
 
           <div class="totals">
-            <div class="total-line"><span>Subtotal</span><strong id="subtotalText">$0.00</strong></div>
-            <div class="total-line">
-              <span>
-                <label class="iva-label" title="Activar / desactivar IVA 16%">
-                  <input type="checkbox" class="iva-toggle" id="ivaToggle" />
-                  IVA (16%)
-                </label>
-              </span>
-              <strong id="taxText">$0.00</strong>
-            </div>
-            <div class="total-line"><span>Propina</span><strong id="tipText">$0.00</strong></div>
-
-            <div class="tip-box">
-              <p>Propina sugerida</p>
-              <div class="tip-row" id="tipRow">
-                <button class="tip-btn" data-tip="0.10" type="button">10%</button>
-                <button class="tip-btn" data-tip="0.15" type="button">15%</button>
-                <button class="tip-btn" data-tip="0.20" type="button">20%</button>
-                <button class="tip-btn active" data-tip="0" type="button">Sin propina</button>
-              </div>
-              <div class="tip-amount-row">
-                <span class="tip-amount-prefix">$</span>
-                <input type="number" id="tipAmountInput" class="tip-amount-input"
-                       min="0" step="1" placeholder="Monto libre..." />
-              </div>
-            </div>
-
+            <div class="total-line"><span>Subtotal <small style="font-weight:600;opacity:.65">(IVA incluido)</small></span><strong id="subtotalText">$0.00</strong></div>
             <div class="grand-total"><span>Total</span><strong id="totalText">$0.00</strong></div>
           </div>
 
           <div class="order-actions">
             <button class="outline-btn" id="saveOrderBtn" type="button">💾 Guardar</button>
             <button class="pay-btn" id="payBtn" type="button">💳 Cobrar $0.00</button>
+          </div>
+          <div id="deleteOrderRow" style="display:none; padding: 0 18px 18px;">
+            <button class="outline-btn" id="deleteOrderBtn" type="button"
+                    style="width:100%; color:var(--coral-600); border-color:var(--coral-600);">
+              🗑️ Eliminar orden
+            </button>
           </div>
         </aside>
         </div><!-- /col order-panel -->
@@ -794,11 +808,14 @@
       activeCategory: null,
       search:        '',
       tipPercent:    0,
-      includeIva:    true,
+      discountCode:    null,
+      discountPercent: 0,
       cart:          new Map(),   // key → { key, name, price, qty, dishId }
       savedOrderId:  null,
       orderNumber:   null,
       tableName:     '',
+      customerName:  '',
+      orderNotes:    '',
       orderType:     'dine_in',
       activeShift:   null,       // PosShift | null
     };
@@ -1005,7 +1022,8 @@
     });
 
     // ─────────────────────────────────────────────────────────────
-    //  Totales (con IVA opcional)
+    //  Totales (los precios ya incluyen IVA · propina y descuento se
+    //  definen en el modal de cobro, no en el panel de la orden)
     // ─────────────────────────────────────────────────────────────
     function getCartSubtotal() {
       return [...state.cart.values()].reduce((s, { price, qty }) => s + price * qty, 0);
@@ -1018,22 +1036,16 @@
       return Math.round(subtotal * state.tipPercent * 100) / 100;
     }
 
-    function updateTotals(subtotal) {
-      const ivaActive = document.getElementById('ivaToggle').checked;
-      const tax       = ivaActive ? Math.round(subtotal * 0.16 * 100) / 100 : 0;
-      const tip       = getTipAmount(subtotal);
-      const total     = subtotal + tax + tip;
-
-      document.getElementById('subtotalText').textContent = money.format(subtotal);
-      document.getElementById('taxText').textContent      = money.format(tax);
-      document.getElementById('tipText').textContent      = money.format(tip);
-      document.getElementById('totalText').textContent    = money.format(total);
-      document.getElementById('payBtn').textContent       = `💳 Cobrar ${money.format(total)}`;
+    function getDiscountAmount(subtotal) {
+      if (!state.discountPercent) return 0;
+      return Math.round(subtotal * state.discountPercent / 100 * 100) / 100;
     }
 
-    document.getElementById('ivaToggle').addEventListener('change', () => {
-      updateTotals(getCartSubtotal());
-    });
+    function updateTotals(subtotal) {
+      document.getElementById('subtotalText').textContent = money.format(subtotal);
+      document.getElementById('totalText').textContent    = money.format(subtotal);
+      document.getElementById('payBtn').textContent       = `💳 Cobrar ${money.format(subtotal)}`;
+    }
 
     document.getElementById('tipRow').addEventListener('click', e => {
       const btn = e.target.closest('[data-tip]');
@@ -1045,7 +1057,7 @@
       const tipAmt   = Math.round(subtotal * state.tipPercent * 100) / 100;
       const inp      = document.getElementById('tipAmountInput');
       inp.value      = state.tipPercent === 0 ? '' : (tipAmt > 0 ? tipAmt : '');
-      updateTotals(subtotal);
+      refreshPayBreakdown();
     });
 
     document.getElementById('tipAmountInput').addEventListener('input', () => {
@@ -1055,8 +1067,76 @@
         document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active'));
         state.tipPercent = 0;
       }
-      updateTotals(getCartSubtotal());
+      refreshPayBreakdown();
     });
+
+    // ── Código de descuento ─────────────────────────────────────────
+    function updateDiscountUI() {
+      const appliedRow = document.getElementById('discountAppliedRow');
+      const inputRow   = document.getElementById('discountInputRow');
+      if (state.discountCode) {
+        appliedRow.style.display = 'flex';
+        inputRow.style.display   = 'none';
+        document.getElementById('discountAppliedText').textContent =
+          `🏷️ ${state.discountCode} — ${state.discountPercent}% de descuento`;
+      } else {
+        appliedRow.style.display = 'none';
+        inputRow.style.display   = 'flex';
+      }
+    }
+
+    document.getElementById('applyDiscountBtn').addEventListener('click', async () => {
+      const codeInput = document.getElementById('discountCodeInput');
+      const code = codeInput.value.trim();
+      if (!code) { toast('Ingresa un código de descuento', 'error'); return; }
+
+      const btn = document.getElementById('applyDiscountBtn');
+      btn.textContent = 'Validando...'; btn.disabled = true;
+
+      try {
+        const json = await api('POST', '/api/v1/discount-codes/validate', { code });
+        if (json.success) {
+          state.discountCode    = json.data.code;
+          state.discountPercent = json.data.percentage;
+          codeInput.value = '';
+          updateDiscountUI();
+          refreshPayBreakdown();
+          toast(`✅ Descuento aplicado — ${json.data.percentage}%`, 'success');
+        } else {
+          toast(json.message || 'Código de descuento inválido', 'error');
+        }
+      } catch { toast('Error de conexión', 'error'); }
+      finally { btn.textContent = 'Aplicar'; btn.disabled = false; }
+    });
+
+    document.getElementById('removeDiscountBtn').addEventListener('click', () => {
+      state.discountCode    = null;
+      state.discountPercent = 0;
+      updateDiscountUI();
+      refreshPayBreakdown();
+    });
+
+    // Recalcula subtotal/descuento/propina/total dentro del modal de cobro
+    function refreshPayBreakdown() {
+      const subtotal = getCartSubtotal();
+      const tip      = getTipAmount(subtotal);
+      const discount = getDiscountAmount(subtotal);
+      payOrderTotal  = Math.round((subtotal - discount + tip) * 100) / 100;
+
+      document.getElementById('paySubtotalText').textContent = money.format(subtotal);
+      document.getElementById('payTipText').textContent      = money.format(tip);
+      const discRow = document.getElementById('payDiscountRow');
+      if (discount > 0) {
+        discRow.style.display = '';
+        document.getElementById('payDiscountText').textContent = '-' + money.format(discount);
+      } else {
+        discRow.style.display = 'none';
+      }
+      document.getElementById('payTotalBreakdownText').textContent = money.format(payOrderTotal);
+      document.getElementById('payModalTotal').textContent         = money.format(payOrderTotal);
+
+      updatePaySummary();
+    }
 
     // ─────────────────────────────────────────────────────────────
     //  Helpers de payload
@@ -1072,25 +1152,44 @@
     }
 
     function currentTotals() {
-      const subtotal  = getCartSubtotal();
-      const ivaActive = document.getElementById('ivaToggle').checked;
-      const tax       = ivaActive ? Math.round(subtotal * 0.16 * 100) / 100 : 0;
-      const tip       = getTipAmount(subtotal);
-      return { subtotal, tax, tip, total: subtotal + tax + tip };
+      const subtotal = getCartSubtotal();
+      const tip      = getTipAmount(subtotal);
+      const discount = getDiscountAmount(subtotal);
+      return {
+        subtotal,
+        tax:              0,
+        tip,
+        discount_code:    state.discountCode,
+        discount_percent: state.discountPercent || null,
+        total:            Math.round((subtotal - discount + tip) * 100) / 100,
+      };
     }
 
     function resetCart() {
       state.cart.clear();
-      state.savedOrderId = null;
-      state.orderNumber  = null;
-      state.tableName    = '';
-      state.orderType    = 'dine_in';
-      state.tipPercent   = 0;
-      document.getElementById('tipAmountInput').value = '';
+      state.savedOrderId    = null;
+      state.orderNumber     = null;
+      state.tableName       = '';
+      state.customerName    = '';
+      state.orderNotes      = '';
+      state.orderType       = 'dine_in';
+      state.tipPercent      = 0;
+      state.discountCode    = null;
+      state.discountPercent = 0;
+      document.getElementById('tipAmountInput').value    = '';
+      document.getElementById('discountCodeInput').value = '';
       document.querySelectorAll('.tip-btn').forEach((b, i) => b.classList.toggle('active', i === 3)); // "Sin propina"
+      updateDiscountUI();
       document.getElementById('orderTitle').textContent = 'Nueva orden';
       document.getElementById('orderMeta').innerHTML    = 'Sin ítems · <span id="orderMesaBadge"></span>';
+      updateOrderActionsUI();
       renderCart();
+    }
+
+    // Muestra/oculta el botón "Eliminar orden" según si hay una orden guardada cargada
+    function updateOrderActionsUI() {
+      const row = document.getElementById('deleteOrderRow');
+      if (row) row.style.display = state.savedOrderId ? '' : 'none';
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -1112,9 +1211,13 @@
 
     document.getElementById('saveOrderBtn').addEventListener('click', () => {
       if (state.cart.size === 0) { toast('Agrega al menos un platillo', 'error'); return; }
+
+      const isEditing = !!state.savedOrderId;
       document.getElementById('tableNameInput').value    = state.tableName || '';
-      document.getElementById('customerNameInput').value = '';
-      document.getElementById('saveNotesInput').value    = '';
+      document.getElementById('customerNameInput').value = state.customerName || '';
+      document.getElementById('saveNotesInput').value    = state.orderNotes || '';
+      document.querySelector('#tableModal h3').textContent = isEditing ? '✏️ Actualizar orden' : '🍽️ Guardar orden';
+      document.getElementById('confirmSaveOrder').textContent = isEditing ? '✏️ Actualizar orden' : '💾 Guardar orden';
       openModal('tableModal');
       setTimeout(() => document.getElementById('tableNameInput').focus(), 120);
     });
@@ -1131,8 +1234,9 @@
         toast('Indica el número o nombre de la mesa', 'error'); return;
       }
 
+      const isEditing = !!state.savedOrderId;
       const btn = document.getElementById('confirmSaveOrder');
-      btn.textContent = 'Guardando...'; btn.disabled = true;
+      btn.textContent = isEditing ? 'Actualizando...' : 'Guardando...'; btn.disabled = true;
 
       try {
         const totals  = currentTotals();
@@ -1145,14 +1249,16 @@
           ...totals,
         };
 
-        const json = await api('POST', '/api/v1/orders', payload);
+        const json = isEditing
+          ? await api('PUT', `/api/v1/orders/${state.savedOrderId}`, payload)
+          : await api('POST', '/api/v1/orders', payload);
 
         if (json.success) {
           state.savedOrderId = json.data.id;
           state.orderNumber  = json.data.order_number;
           state.tableName    = tableName;
           closeModal('tableModal');
-          toast(`✅ Orden guardada — ${tableName}`, 'success');
+          toast(isEditing ? `✅ Orden actualizada — ${tableName}` : `✅ Orden guardada — ${tableName}`, 'success');
           resetCart();
           loadKpis();
         } else {
@@ -1161,7 +1267,30 @@
       } catch(e) {
         toast('Error de conexión', 'error');
       } finally {
-        btn.textContent = '💾 Guardar orden'; btn.disabled = false;
+        btn.textContent = isEditing ? '✏️ Actualizar orden' : '💾 Guardar orden'; btn.disabled = false;
+      }
+    });
+
+    document.getElementById('deleteOrderBtn').addEventListener('click', async () => {
+      if (!state.savedOrderId) return;
+      if (!confirm('¿Eliminar esta orden? Esta acción no se puede deshacer.')) return;
+
+      const btn = document.getElementById('deleteOrderBtn');
+      btn.textContent = 'Eliminando...'; btn.disabled = true;
+
+      try {
+        const json = await api('DELETE', `/api/v1/orders/${state.savedOrderId}`);
+        if (json.success) {
+          toast('🗑️ Orden eliminada', 'success');
+          resetCart();
+          loadKpis();
+        } else {
+          toast(json.message || 'Error eliminando la orden', 'error');
+        }
+      } catch(e) {
+        toast('Error de conexión', 'error');
+      } finally {
+        btn.textContent = '🗑️ Eliminar orden'; btn.disabled = false;
       }
     });
 
@@ -1198,7 +1327,10 @@
                 · <span class="order-card-badge">Abierta</span>
               </span>
             </div>
-            <div class="order-card-total">${money.format(o.total)}</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="order-card-total">${money.format(o.total)}</div>
+              <button class="trash-btn" data-delete-order="${o.id}" type="button" title="Eliminar orden">🗑</button>
+            </div>
           </div>
         `).join('');
       } catch(e) {
@@ -1207,6 +1339,26 @@
     }
 
     document.getElementById('activeOrdersList').addEventListener('click', async e => {
+      const delBtn = e.target.closest('[data-delete-order]');
+      if (delBtn) {
+        const orderId = Number(delBtn.dataset.deleteOrder);
+        if (!confirm('¿Eliminar esta orden? Esta acción no se puede deshacer.')) return;
+        try {
+          const json = await api('DELETE', `/api/v1/orders/${orderId}`);
+          if (json.success) {
+            toast('🗑️ Orden eliminada', 'success');
+            if (state.savedOrderId === orderId) resetCart();
+            await loadActiveOrders();
+            loadKpis();
+          } else {
+            toast(json.message || 'Error eliminando la orden', 'error');
+          }
+        } catch(e) {
+          toast('Error de conexión', 'error');
+        }
+        return;
+      }
+
       const card = e.target.closest('[data-order-id]');
       if (!card) return;
       const orderId = Number(card.dataset.orderId);
@@ -1224,6 +1376,11 @@
         state.savedOrderId = order.id;
         state.orderNumber  = order.order_number;
         state.tableName    = order.table_name ?? '';
+        state.customerName = order.customer_name ?? '';
+        state.orderNotes   = order.notes ?? '';
+        state.discountCode    = order.discount_code ?? null;
+        state.discountPercent = order.discount_percent ? parseFloat(order.discount_percent) : 0;
+        updateDiscountUI();
         setOrderType(order.order_type ?? 'dine_in');
 
         for (const item of (order.items ?? [])) {
@@ -1251,6 +1408,7 @@
         document.getElementById('orderMeta').innerHTML =
           `<span class="order-type-badge ${otype}">${orderTypeLabels[otype]}</span> · ${mesa} · <span id="orderMesaBadge"></span>`;
 
+        updateOrderActionsUI();
         renderCart();
         toast(`✅ Orden cargada — ${mesa}`, 'success');
       } catch(e) {
@@ -1307,19 +1465,17 @@
 
     function openPayModal() {
       if (state.cart.size === 0) { toast('Agrega al menos un platillo', 'error'); return; }
-      const totals  = currentTotals();
-      payOrderTotal = totals.total;
-      document.getElementById('payModalTotal').textContent = money.format(payOrderTotal);
 
       // Sincronizar selector de tipo de orden con el estado actual
       setOrderType(state.orderType);
+      updateDiscountUI();
+      refreshPayBreakdown();
 
       // Limpiar filas anteriores y agregar una por defecto (efectivo, total completo)
       payRowCounter = 0;
       document.getElementById('paymentRows').innerHTML = '';
       addPayRow('cash', payOrderTotal.toFixed(2));
 
-      updatePaySummary();
       openModal('payModal');
       setTimeout(() => { const inp = document.querySelector('.pay-amount-inp'); if (inp) inp.select(); }, 140);
     }
@@ -1370,18 +1526,28 @@
       btn.textContent = 'Procesando...'; btn.disabled = true;
 
       try {
-        // Crear orden si no existe
-        let orderId = state.savedOrderId;
+        // Crear o sincronizar la orden con el carrito actual antes de cobrar
+        // (si la orden ya existía y se editó el carrito sin guardar, el backend
+        // aún tendría los ítems/total viejos si no la sincronizamos aquí).
+        let orderId   = state.savedOrderId;
+        const totals  = currentTotals();
+        const payload = {
+          items:         buildItems(),
+          ...totals,
+          table_name:    state.tableName || null,
+          customer_name: state.customerName || null,
+          order_type:    state.orderType,
+          notes:         state.orderNotes || null,
+        };
+
         if (!orderId) {
-          const totals  = currentTotals();
-          const payload = { items: buildItems(), ...totals, table_name: state.tableName || null, order_type: state.orderType, notes: null };
-          const cj      = await api('POST', '/api/v1/orders', payload);
+          const cj = await api('POST', '/api/v1/orders', payload);
           if (!cj.success) { toast(cj.message || 'Error creando la orden', 'error'); return; }
           orderId            = cj.data.id;
           state.savedOrderId = orderId;
         } else {
-          // Actualizar tipo en orden ya guardada
-          await api('PUT', `/api/v1/orders/${orderId}`, { order_type: state.orderType });
+          const uj = await api('PUT', `/api/v1/orders/${orderId}`, payload);
+          if (!uj.success) { toast(uj.message || 'Error actualizando la orden', 'error'); return; }
         }
 
         const payJson = await api('POST', `/api/v1/orders/${orderId}/pay`, {
@@ -1655,13 +1821,17 @@
       const desc   = document.getElementById('manualMovDesc').value.trim();
 
       if (isNaN(amount) || amount <= 0) { toast('Ingresa un monto válido.', 'error'); return; }
+      if (!desc) {
+        document.getElementById('manualMovDesc').focus();
+        toast('La descripción es obligatoria.', 'error'); return;
+      }
 
       const btn = document.getElementById('confirmManualMov');
       btn.textContent = 'Registrando...'; btn.disabled = true;
 
       try {
         const json = await api('POST', `/api/v1/shifts/${state.activeShift.id}/movements`, {
-          type, amount, description: desc || null,
+          type, amount, description: desc,
         });
         if (json.success) {
           toast('✅ Movimiento registrado.', 'success');
@@ -1706,6 +1876,5 @@
     setInterval(loadKpis, 60000);
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  @include('partials.session-timeout')
 </body>
 </html>

@@ -34,7 +34,7 @@
             text-align: center;
             border-bottom: 2px solid rgba(203,131,23,.25);
         }
-        .octo { font-size: 3rem; line-height: 1; }
+        .octo { width: 76px; height: 76px; object-fit: contain; margin: 0 auto; display: block; }
         .login-header h1 { color: var(--gold); font-size: 1.6rem; font-weight: 800; letter-spacing: .06em; margin: .5rem 0 .25rem; }
         .login-header p  { color: rgba(255,255,255,.55); font-size: .85rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; margin: 0; }
         .login-body { padding: 2rem; }
@@ -53,7 +53,7 @@
 <body>
     <div class="login-card">
         <div class="login-header">
-            <div class="octo">🐙</div>
+            <img class="octo" src="{{ asset('assets/images/logo.png') }}" alt="Don Pulpo" />
             <h1>DON PULPO</h1>
             <p>Punto de Venta</p>
         </div>

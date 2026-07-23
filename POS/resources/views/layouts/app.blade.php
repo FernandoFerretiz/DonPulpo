@@ -9,7 +9,8 @@
         :root { --dp-navy: #04152c; --dp-aqua: #09d1d0; --dp-coral: #ff6048; }
         body { background: #f6f9fc; }
         .navbar { background: var(--dp-navy); }
-        .navbar-brand { color: var(--dp-aqua) !important; font-weight: 800; }
+        .navbar-brand { color: var(--dp-aqua) !important; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+        .navbar-brand img { width: 30px; height: 30px; object-fit: contain; }
         .nav-link { color: rgba(255,255,255,.80) !important; }
         .nav-link:hover { color: var(--dp-aqua) !important; }
         .btn-dp { background: var(--dp-aqua); color: #fff; border: none; }
@@ -20,7 +21,10 @@
 <body>
 <nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
-        <a class="navbar-brand" href="{{ route('home') }}">🐙 Don Pulpo POS</a>
+        <a class="navbar-brand" href="{{ route('home') }}">
+            <img src="{{ asset('assets/images/logo.png') }}" alt="Don Pulpo" />
+            Don Pulpo POS
+        </a>
         <div class="navbar-nav ms-auto flex-row gap-3">
             <span class="nav-link text-white-50 small">{{ Auth::user()->name ?? '' }}</span>
             <form action="{{ route('logout') }}" method="POST">
@@ -43,6 +47,5 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 @yield('scripts')
-@include('partials.session-timeout')
 </body>
 </html>

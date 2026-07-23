@@ -7,12 +7,9 @@ use App\Models\PosOrder;
 use App\Models\PosPayment;
 use App\Models\PosShift;
 use App\Models\PettyCashVoucher;
-use App\Services\Sync\OutboxRecorder;
 
 class CashMovementService
 {
-    public function __construct(private OutboxRecorder $outbox) {}
-
     public function registerMovement(
         PosShift $shift,
         string   $type,
@@ -23,7 +20,7 @@ class CashMovementService
             throw new \RuntimeException('No se pueden registrar movimientos en un turno cerrado.');
         }
 
-        $movement = CashMovement::create(array_merge([
+        return CashMovement::create(array_merge([
             'pos_shift_id' => $shift->id,
             'user_id'      => $extra['user_id'] ?? $shift->user_id,
             'type'         => $type,
@@ -34,10 +31,6 @@ class CashMovementService
             'reference_type' => $extra['reference_type'] ?? null,
             'reference_id'   => $extra['reference_id']   ?? null,
         ], fn($v) => $v !== null)));
-
-        $this->outbox->record('cash_movement.created', $movement, [], ['shift', 'user']);
-
-        return $movement;
     }
 
     public function registerSalePayment(
@@ -53,7 +46,13 @@ class CashMovementService
             default    => CashMovement::TYPE_VENTA_EFECTIVO,
         };
 
-        return $this->registerMovement($shift, $type, (float) $payment->amount, [
+        // El efectivo tendido menos el cambio entregado es lo que realmente
+        // queda en caja; en tarjeta/transferencia no aplica cambio.
+        $netAmount = $payment->method === 'cash'
+            ? (float) $payment->amount - (float) $payment->change_amount
+            : (float) $payment->amount;
+
+        return $this->registerMovement($shift, $type, $netAmount, [
             'user_id'        => $userId,
             'payment_method' => $payment->method,
             'description'    => "Orden {$order->order_number}",
