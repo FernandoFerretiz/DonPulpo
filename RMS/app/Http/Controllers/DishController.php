@@ -44,6 +44,7 @@ class DishController extends Controller
 
         if ($request->hasFile('image')) {
             $validated['image_path'] = $request->file('image')->store('dishes', 'public');
+            $this->syncImageToPos($validated['image_path']);
         }
         unset($validated['image']);
 
@@ -76,11 +77,14 @@ class DishController extends Controller
         if ($request->hasFile('image')) {
             if ($dish->image_path) {
                 Storage::disk('public')->delete($dish->image_path);
+                $this->removeImageFromPos($dish->image_path);
             }
             $validated['image_path'] = $request->file('image')->store('dishes', 'public');
+            $this->syncImageToPos($validated['image_path']);
         } elseif ($request->input('remove_image') === '1') {
             if ($dish->image_path) {
                 Storage::disk('public')->delete($dish->image_path);
+                $this->removeImageFromPos($dish->image_path);
             }
             $validated['image_path'] = null;
         }
@@ -95,8 +99,34 @@ class DishController extends Controller
     {
         if ($dish->image_path) {
             Storage::disk('public')->delete($dish->image_path);
+            $this->removeImageFromPos($dish->image_path);
         }
         $dish->delete();
         return redirect()->route('dishes.index')->with('success', 'Platillo eliminado correctamente.');
+    }
+
+    /**
+     * POS is a sibling Laravel app that reads dish images from its own
+     * storage disk. It doesn't share a filesystem/symlink with RMS in
+     * every environment, so the file is copied over on write.
+     */
+    private function syncImageToPos(string $relativePath): void
+    {
+        $target = base_path('../POS/storage/app/public/' . $relativePath);
+        $source = Storage::disk('public')->path($relativePath);
+
+        if (! is_dir(dirname($target))) {
+            mkdir(dirname($target), 0755, true);
+        }
+
+        @copy($source, $target);
+    }
+
+    private function removeImageFromPos(string $relativePath): void
+    {
+        $target = base_path('../POS/storage/app/public/' . $relativePath);
+        if (is_file($target)) {
+            @unlink($target);
+        }
     }
 }
