@@ -57,13 +57,16 @@ class OrderService
         $quantity = (int) ($item['quantity'] ?? 1);
 
         $orderItem = PosOrderItem::create([
-            'pos_order_id'  => $order->id,
-            'dish_id'       => $dish?->id,
-            'name_snapshot' => $name,
-            'unit_price'    => $price,
-            'quantity'      => $quantity,
-            'line_total'    => round($price * $quantity, 2),
-            'notes'         => $item['notes'] ?? null,
+            'pos_order_id'         => $order->id,
+            'dish_id'              => $dish?->id,
+            'name_snapshot'        => $name,
+            'unit_price'           => $price,
+            'quantity'             => $quantity,
+            // Al recrear una línea que ya existía (ver updateOrder), se conserva cuánto de
+            // ella ya se mandó a cocina para no duplicar la comanda de lo ya enviado.
+            'sent_to_kitchen_qty'  => min((int) ($item['sent_to_kitchen_qty'] ?? 0), $quantity),
+            'line_total'           => round($price * $quantity, 2),
+            'notes'                => $item['notes'] ?? null,
         ]);
 
         $this->recalculateTotals($order);
@@ -76,8 +79,11 @@ class OrderService
         $this->assertModifiable($order);
 
         $item->update([
-            'quantity'   => $quantity,
-            'line_total' => round($item->unit_price * $quantity, 2),
+            'quantity'            => $quantity,
+            'line_total'          => round($item->unit_price * $quantity, 2),
+            // Si la cantidad baja por debajo de lo ya enviado a cocina, lo enviado no puede
+            // superar la nueva cantidad.
+            'sent_to_kitchen_qty' => min($item->sent_to_kitchen_qty, $quantity),
         ]);
 
         $this->recalculateTotals($order);
@@ -134,8 +140,20 @@ class OrderService
         }
 
         if (array_key_exists('items', $data)) {
+            // El carrito se re-sincroniza completo (borra y recrea), pero eso no debe resetear
+            // el rastro de qué tanto de cada línea ya se envió a cocina: se conserva por firma
+            // (platillo + notas) antes de borrar, y se traslada a la línea recreada.
+            $sentByLine = [];
+            foreach ($order->items as $existingItem) {
+                $signature = $this->itemSignature($existingItem->dish_id, $existingItem->name_snapshot, $existingItem->notes);
+                $sentByLine[$signature] = ($sentByLine[$signature] ?? 0) + $existingItem->sent_to_kitchen_qty;
+            }
+
             $order->items()->delete();
+
             foreach ($data['items'] as $item) {
+                $signature = $this->itemSignature($item['dish_id'] ?? null, $item['name_snapshot'] ?? null, $item['notes'] ?? null);
+                $item['sent_to_kitchen_qty'] = $sentByLine[$signature] ?? 0;
                 $this->addItemToOrder($order, $item);
             }
         }
@@ -152,10 +170,15 @@ class OrderService
         return $order->fresh(['items']);
     }
 
-    public function cancelOrder(PosOrder $order): PosOrder
+    public function cancelOrder(PosOrder $order, int $cancelledBy, ?string $reason = null): PosOrder
     {
         $this->assertModifiable($order);
-        $order->update(['status' => 'cancelled']);
+        $order->update([
+            'status'        => 'cancelled',
+            'cancelled_by'  => $cancelledBy,
+            'cancelled_at'  => now(),
+            'cancel_reason' => $reason,
+        ]);
         return $order->fresh();
     }
 
@@ -172,5 +195,11 @@ class OrderService
     private function generateOrderNumber(): string
     {
         return 'ORD-' . strtoupper(Str::random(8));
+    }
+
+    private function itemSignature(?int $dishId, ?string $nameSnapshot, ?string $notes): string
+    {
+        $identity = $dishId ? "d:{$dishId}" : 'n:' . ($nameSnapshot ?? '');
+        return $identity . '|' . ($notes ?? '');
     }
 }

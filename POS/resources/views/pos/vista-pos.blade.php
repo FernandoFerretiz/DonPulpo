@@ -208,6 +208,8 @@
     .cart-title span   { display: block; color: var(--ink-500); font-size: 13px; margin-top: 3px; }
     .trash-btn { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 14px; background: #fff3f1; color: var(--coral-600); font-size: 20px; cursor: pointer; }
     .trash-btn:active { transform: scale(.96); }
+    .print-btn { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 14px; background: var(--surface-soft); color: var(--ink-700); font-size: 20px; cursor: pointer; }
+    .print-btn:active { transform: scale(.96); }
     .cart-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .qty-group { min-height: 48px; display: inline-flex; align-items: center; gap: 4px; padding: 4px; border-radius: 16px; border: 1px solid var(--line); background: #fff; }
     .qty-btn { width: 44px; height: 40px; border-radius: 12px; background: var(--surface-soft); color: var(--ink-900); cursor: pointer; font-size: 22px; font-weight: 900; }
@@ -536,6 +538,61 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="customerPickerModal">
+    <div class="modal-box" style="max-width:640px">
+      <h3>🧾 Cliente para crédito</h3>
+      <div class="field">
+        <input type="text" id="customerSearchInput" placeholder="Buscar por nombre o teléfono..." autocomplete="off" />
+      </div>
+      <div id="customerPickerList" style="max-height:340px; overflow-y:auto; border:1.5px solid var(--line); border-radius:14px; margin-bottom:14px">
+        <div style="padding:16px; color:var(--ink-500); font-size:14px" id="customerPickerEmpty">Sin resultados</div>
+      </div>
+      <button class="outline-btn" id="newCustomerBtn" type="button" style="width:100%; min-height:44px; margin-bottom:6px">
+        + Nuevo cliente
+      </button>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="cancelCustomerPicker">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="newCustomerModal">
+    <div class="modal-box" style="max-width:400px">
+      <h3>🧾 Nuevo cliente</h3>
+      <div class="field">
+        <label>Nombre</label>
+        <input type="text" id="newCustomerName" placeholder="Nombre del cliente" />
+      </div>
+      <div class="field">
+        <label>Teléfono (opcional)</label>
+        <input type="text" id="newCustomerPhone" placeholder="Teléfono" />
+      </div>
+      <div class="field">
+        <label>Límite de crédito (opcional)</label>
+        <input type="number" id="newCustomerCreditLimit" min="0" step="0.01" placeholder="Sin límite" />
+      </div>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="cancelNewCustomer">Cancelar</button>
+        <button class="modal-confirm" id="confirmNewCustomer">✅ Crear cliente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MODAL: Pago registrado (imprimir ticket / comanda)
+  ═══════════════════════════════════════════ -->
+  <div class="modal-overlay" id="printChoiceModal">
+    <div class="modal-box" style="max-width:420px">
+      <h3>✅ Pago registrado</h3>
+      <p style="color:var(--ink-600);margin-top:-8px">¿Qué deseas imprimir?</p>
+      <div class="modal-actions" style="flex-direction:column;gap:10px">
+        <button class="modal-confirm" id="printChoiceTicket" type="button" style="width:100%">🖨️ Ticket</button>
+        <button class="outline-btn" id="printChoiceComanda" type="button" style="width:100%">🖨️ Comanda</button>
+        <button class="modal-cancel" id="printChoiceClose" type="button" style="width:100%">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══════════════════════════════════════════
        MODAL: Abrir turno
   ═══════════════════════════════════════════ -->
@@ -770,6 +827,7 @@
     // ─────────────────────────────────────────────────────────────
     const money = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
     const csrf  = document.querySelector('meta[name="csrf-token"]').content;
+    const isAdminUser = @json(Auth::user()->role === 'admin');
 
     async function api(method, url, body = null) {
       const res = await fetch(url, {
@@ -966,9 +1024,26 @@
       // Solo lo invalidamos si el carrito fue modificado manualmente, no al cargar una orden
     }
 
+    function updateOrderItemsCount() {
+      const meta  = document.getElementById('orderMeta');
+      const count = [...state.cart.values()].reduce((s, { qty }) => s + qty, 0);
+      const label = count === 0 ? 'Sin ítems' : `${count} ítem${count === 1 ? '' : 's'}`;
+
+      if (state.savedOrderId) {
+        const mesa  = state.tableName || 'Sin mesa';
+        const otype = state.orderType ?? 'dine_in';
+        meta.innerHTML =
+          `<span class="order-type-badge ${otype}">${orderTypeLabels[otype]}</span> · ${mesa} · ${label} · <span id="orderMesaBadge"></span>`;
+      } else {
+        meta.innerHTML = `${label} · <span id="orderMesaBadge"></span>`;
+      }
+    }
+
     function renderCart() {
       const items    = [...state.cart.values()];
       const cartList = document.getElementById('cartList');
+
+      updateOrderItemsCount();
 
       if (!items.length) {
         cartList.innerHTML = `<div class="cart-empty">La orden está vacía. Toca + para agregar platillos.</div>`;
@@ -1135,6 +1210,14 @@
       document.getElementById('payTotalBreakdownText').textContent = money.format(payOrderTotal);
       document.getElementById('payModalTotal').textContent         = money.format(payOrderTotal);
 
+      // Si sólo hay una forma de pago, mantenerla sincronizada con el total
+      // (propina/descuento pueden cambiar el total después de abrir el modal)
+      const rows = document.querySelectorAll('.pay-row');
+      if (rows.length === 1) {
+        const inp = rows[0].querySelector('.pay-amount-inp');
+        if (inp) inp.value = payOrderTotal.toFixed(2);
+      }
+
       updatePaySummary();
     }
 
@@ -1181,7 +1264,7 @@
       document.querySelectorAll('.tip-btn').forEach((b, i) => b.classList.toggle('active', i === 3)); // "Sin propina"
       updateDiscountUI();
       document.getElementById('orderTitle').textContent = 'Nueva orden';
-      document.getElementById('orderMeta').innerHTML    = 'Sin ítems · <span id="orderMesaBadge"></span>';
+      updateOrderItemsCount();
       updateOrderActionsUI();
       renderCart();
     }
@@ -1189,7 +1272,7 @@
     // Muestra/oculta el botón "Eliminar orden" según si hay una orden guardada cargada
     function updateOrderActionsUI() {
       const row = document.getElementById('deleteOrderRow');
-      if (row) row.style.display = state.savedOrderId ? '' : 'none';
+      if (row) row.style.display = (state.savedOrderId && isAdminUser) ? '' : 'none';
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -1329,7 +1412,8 @@
             </div>
             <div style="display:flex;align-items:center;gap:10px">
               <div class="order-card-total">${money.format(o.total)}</div>
-              <button class="trash-btn" data-delete-order="${o.id}" type="button" title="Eliminar orden">🗑</button>
+              <button class="print-btn" data-print-comanda="${o.id}" type="button" title="Imprimir comanda">🖨️</button>
+              ${isAdminUser ? `<button class="trash-btn" data-delete-order="${o.id}" type="button" title="Eliminar orden">🗑</button>` : ''}
             </div>
           </div>
         `).join('');
@@ -1339,6 +1423,12 @@
     }
 
     document.getElementById('activeOrdersList').addEventListener('click', async e => {
+      const printBtn = e.target.closest('[data-print-comanda]');
+      if (printBtn) {
+        window.open(`/api/v1/orders/${Number(printBtn.dataset.printComanda)}/comanda`, '_blank');
+        return;
+      }
+
       const delBtn = e.target.closest('[data-delete-order]');
       if (delBtn) {
         const orderId = Number(delBtn.dataset.deleteOrder);
@@ -1403,10 +1493,7 @@
 
         // Actualizar header de la orden
         document.getElementById('orderTitle').textContent = `Orden ${order.order_number ?? '#' + order.id}`;
-        const mesa = order.table_name ? `${order.table_name}` : 'Sin mesa';
-        const otype = order.order_type ?? 'dine_in';
-        document.getElementById('orderMeta').innerHTML =
-          `<span class="order-type-badge ${otype}">${orderTypeLabels[otype]}</span> · ${mesa} · <span id="orderMesaBadge"></span>`;
+        const mesa = state.tableName || 'Sin mesa';
 
         updateOrderActionsUI();
         renderCart();
@@ -1419,8 +1506,9 @@
     // ─────────────────────────────────────────────────────────────
     //  MODAL: Cobrar (multi-pago)
     // ─────────────────────────────────────────────────────────────
-    let payRowCounter = 0;
-    let payOrderTotal = 0;
+    let payRowCounter   = 0;
+    let payOrderTotal   = 0;
+    let lastPaidOrderId = null;
 
     function addPayRow(method = 'cash', amount = '') {
       const id  = payRowCounter++;
@@ -1432,21 +1520,152 @@
           <option value="cash"     ${method === 'cash'     ? 'selected' : ''}>💵 Efectivo</option>
           <option value="card"     ${method === 'card'     ? 'selected' : ''}>💳 Tarjeta</option>
           <option value="transfer" ${method === 'transfer' ? 'selected' : ''}>📲 Transferencia</option>
+          <option value="credit"   ${method === 'credit'   ? 'selected' : ''}>🧾 Crédito</option>
         </select>
         <input class="pay-amount-inp" type="number" min="0.01" step="0.01"
                placeholder="0.00" value="${amount !== '' ? Number(amount).toFixed(2) : ''}" data-row="${id}" />
         <button class="pay-row-del" data-del="${id}" type="button">✕</button>
+        <div class="pay-row-customer" data-row-customer="${id}" style="display:none; grid-column:1/-1; font-size:13px; color:var(--ink-600); margin-top:-6px"></div>
       `;
       document.getElementById('paymentRows').appendChild(row);
+      if (method === 'credit') openCustomerPicker(id);
       updatePaySummary();
     }
 
     function getPayRows() {
       return [...document.querySelectorAll('.pay-row')].map(row => ({
+        rowId:  row.dataset.row,
         method: row.querySelector('.pay-method-sel').value,
         amount: parseFloat(row.querySelector('.pay-amount-inp').value) || 0,
+        customer_id: payRowCustomers.get(row.dataset.row)?.id || null,
       }));
     }
+
+    // ─────────────────────────────────────────────────────────────
+    //  MODAL: Selección de cliente para pago a crédito
+    // ─────────────────────────────────────────────────────────────
+    let payRowCustomers  = new Map(); // rowId -> { id, name }
+    let pendingCreditRow = null;
+
+    function updateCreditRowDisplay(rowId) {
+      const el = document.querySelector(`[data-row-customer="${rowId}"]`);
+      if (!el) return;
+      const customer = payRowCustomers.get(rowId);
+      if (customer) {
+        el.style.display = '';
+        el.textContent   = `👤 Cliente: ${customer.name}`;
+      } else {
+        el.style.display = 'none';
+        el.textContent   = '';
+      }
+    }
+
+    function renderCustomerList(customers) {
+      const list = document.getElementById('customerPickerList');
+      list.innerHTML = '';
+      if (!customers.length) {
+        list.innerHTML = '<div style="padding:16px; color:var(--ink-500); font-size:14px">Sin resultados</div>';
+        return;
+      }
+      customers.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'customer-picker-item';
+        item.dataset.id   = c.id;
+        item.dataset.name = c.name;
+        item.style.cssText = 'padding:12px 16px; border-bottom:1px solid var(--line); cursor:pointer; font-size:14px; display:flex; justify-content:space-between; align-items:center; gap:12px';
+        item.innerHTML = `
+          <span><strong>${c.name}</strong>${c.phone ? ` <span style="color:var(--ink-500)">· ${c.phone}</span>` : ''}</span>
+          <span style="white-space:nowrap; font-weight:800; color:var(--ink-700)">${money.format(Number(c.balance) || 0)} adeudado</span>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    async function loadCustomerList(q = '') {
+      try {
+        const res = await api('GET', `/api/v1/customers?q=${encodeURIComponent(q)}`);
+        renderCustomerList(res.success ? res.data : []);
+      } catch {
+        renderCustomerList([]);
+      }
+    }
+
+    function openCustomerPicker(rowId) {
+      pendingCreditRow = rowId;
+      document.getElementById('customerSearchInput').value = '';
+      loadCustomerList('');
+      openModal('customerPickerModal');
+      setTimeout(() => document.getElementById('customerSearchInput').focus(), 140);
+    }
+
+    function revertCreditRow(rowId) {
+      const row = document.querySelector(`.pay-row[data-row="${rowId}"]`);
+      if (row) row.querySelector('.pay-method-sel').value = 'cash';
+      payRowCustomers.delete(rowId);
+      updateCreditRowDisplay(rowId);
+      updatePaySummary();
+    }
+
+    let customerSearchTimer = null;
+    document.getElementById('customerSearchInput').addEventListener('input', e => {
+      clearTimeout(customerSearchTimer);
+      customerSearchTimer = setTimeout(() => loadCustomerList(e.target.value.trim()), 250);
+    });
+
+    document.getElementById('customerPickerList').addEventListener('click', e => {
+      const item = e.target.closest('.customer-picker-item');
+      if (!item || !pendingCreditRow) return;
+      payRowCustomers.set(pendingCreditRow, { id: Number(item.dataset.id), name: item.dataset.name });
+      updateCreditRowDisplay(pendingCreditRow);
+      pendingCreditRow = null;
+      closeModal('customerPickerModal');
+      updatePaySummary();
+    });
+
+    document.getElementById('cancelCustomerPicker').addEventListener('click', () => {
+      if (pendingCreditRow && !payRowCustomers.get(pendingCreditRow)) revertCreditRow(pendingCreditRow);
+      pendingCreditRow = null;
+      closeModal('customerPickerModal');
+    });
+
+    if (!isAdminUser) document.getElementById('newCustomerBtn').style.display = 'none';
+
+    document.getElementById('newCustomerBtn').addEventListener('click', () => {
+      document.getElementById('newCustomerName').value         = '';
+      document.getElementById('newCustomerPhone').value        = '';
+      document.getElementById('newCustomerCreditLimit').value  = '';
+      openModal('newCustomerModal');
+      setTimeout(() => document.getElementById('newCustomerName').focus(), 140);
+    });
+
+    document.getElementById('cancelNewCustomer').addEventListener('click', () => closeModal('newCustomerModal'));
+
+    document.getElementById('confirmNewCustomer').addEventListener('click', async () => {
+      const name = document.getElementById('newCustomerName').value.trim();
+      if (!name) { toast('El nombre es obligatorio', 'error'); return; }
+      const phone       = document.getElementById('newCustomerPhone').value.trim() || null;
+      const creditLimit = document.getElementById('newCustomerCreditLimit').value;
+
+      try {
+        const res = await api('POST', '/api/v1/customers', {
+          name,
+          phone,
+          credit_limit: creditLimit !== '' ? Number(creditLimit) : null,
+        });
+        if (!res.success) { toast(res.message || 'Error creando cliente', 'error'); return; }
+        closeModal('newCustomerModal');
+        if (pendingCreditRow) {
+          payRowCustomers.set(pendingCreditRow, { id: res.data.id, name: res.data.name });
+          updateCreditRowDisplay(pendingCreditRow);
+          pendingCreditRow = null;
+          closeModal('customerPickerModal');
+          updatePaySummary();
+        }
+        toast('Cliente creado', 'success');
+      } catch {
+        toast('Error de conexión', 'error');
+      }
+    });
 
     function updatePaySummary() {
       const rows    = getPayRows();
@@ -1473,6 +1692,7 @@
 
       // Limpiar filas anteriores y agregar una por defecto (efectivo, total completo)
       payRowCounter = 0;
+      payRowCustomers.clear();
       document.getElementById('paymentRows').innerHTML = '';
       addPayRow('cash', payOrderTotal.toFixed(2));
 
@@ -1493,7 +1713,17 @@
     });
 
     document.getElementById('paymentRows').addEventListener('input', e => {
-      if (e.target.matches('.pay-amount-inp, .pay-method-sel')) updatePaySummary();
+      if (e.target.matches('.pay-amount-inp')) updatePaySummary();
+      if (e.target.matches('.pay-method-sel')) {
+        const rowId = e.target.dataset.row;
+        if (e.target.value === 'credit') {
+          openCustomerPicker(rowId);
+        } else {
+          payRowCustomers.delete(rowId);
+          updateCreditRowDisplay(rowId);
+        }
+        updatePaySummary();
+      }
     });
 
     document.getElementById('paymentRows').addEventListener('click', e => {
@@ -1501,6 +1731,7 @@
       if (!del) return;
       const rows = document.querySelectorAll('.pay-row');
       if (rows.length <= 1) { toast('Debe haber al menos un método de pago', 'error'); return; }
+      payRowCustomers.delete(del.closest('.pay-row').dataset.row);
       del.closest('.pay-row').remove();
       updatePaySummary();
     });
@@ -1516,11 +1747,16 @@
         toast(`Faltan ${money.format(payOrderTotal - entered)} para completar el pago`, 'error'); return;
       }
 
-      // Bloquear cobro en efectivo si no hay turno abierto
-      const hasCash = payRows.some(r => r.method === 'cash');
-      if (hasCash && !state.activeShift) {
-        toast('⚠️ Abre un turno antes de cobrar en efectivo.', 'error', 5000); return;
+      // Toda venta requiere turno de caja activo, sin importar el método
+      if (!state.activeShift) {
+        toast('⚠️ Abre un turno antes de cobrar.', 'error', 5000); return;
       }
+
+      const creditRowWithoutCustomer = payRows.find(r => r.method === 'credit' && !r.customer_id);
+      if (creditRowWithoutCustomer) {
+        toast('Selecciona un cliente para el pago a crédito', 'error'); return;
+      }
+      const creditCustomerId = payRows.find(r => r.method === 'credit')?.customer_id || null;
 
       const btn = document.getElementById('confirmPay');
       btn.textContent = 'Procesando...'; btn.disabled = true;
@@ -1551,7 +1787,8 @@
         }
 
         const payJson = await api('POST', `/api/v1/orders/${orderId}/pay`, {
-          payments: payRows.map(r => ({ method: r.method, amount: r.amount })),
+          payments:    payRows.map(r => ({ method: r.method, amount: r.amount })),
+          customer_id: creditCustomerId,
         });
 
         if (payJson.success) {
@@ -1560,6 +1797,8 @@
           toast(cambio > 0.001
             ? `✅ Pago registrado — Cambio: ${money.format(cambio)}`
             : '✅ Pago registrado correctamente.', 'success', 5000);
+          lastPaidOrderId = orderId;
+          openModal('printChoiceModal');
           resetCart();
           loadKpis();
         } else {
@@ -1570,6 +1809,20 @@
       } finally {
         btn.textContent = '✅ Confirmar pago'; btn.disabled = false;
       }
+    });
+
+    // ─────────────────────────────────────────────────────────────
+    //  Modal post-pago: imprimir ticket / comanda
+    // ─────────────────────────────────────────────────────────────
+    document.getElementById('printChoiceTicket').addEventListener('click', () => {
+      if (lastPaidOrderId) window.open(`/api/v1/orders/${lastPaidOrderId}/ticket`, '_blank');
+    });
+    document.getElementById('printChoiceComanda').addEventListener('click', () => {
+      if (lastPaidOrderId) window.open(`/api/v1/orders/${lastPaidOrderId}/comanda`, '_blank');
+    });
+    document.getElementById('printChoiceClose').addEventListener('click', () => {
+      closeModal('printChoiceModal');
+      lastPaidOrderId = null;
     });
 
     // ─────────────────────────────────────────────────────────────
@@ -1663,7 +1916,7 @@
     });
 
     // ── Modal gestionar / cerrar turno ─────────────────────────────
-    function openShiftManageModal() {
+    async function openShiftManageModal() {
       if (!state.activeShift) { toast('No hay turno abierto.', 'error'); return; }
 
       const s    = state.activeShift;
@@ -1694,6 +1947,24 @@
       document.getElementById('shiftCloseNotes').value  = '';
       openModal('shiftManageModal');
       setTimeout(() => document.getElementById('shiftCountedCash').focus(), 160);
+
+      // Ventas por método hasta el momento (informativo; el crédito no se cuenta como efectivo)
+      try {
+        const res = await api('GET', `/api/v1/shifts/${s.id}/summary`);
+        if (res.success) {
+          const t = res.data.totals;
+          const salesArea = document.createElement('div');
+          salesArea.className   = 'summary-grid';
+          salesArea.style.marginTop = '10px';
+          salesArea.innerHTML = `
+            <div class="summary-item"><p>💵 Ventas efectivo</p><strong>${money.format(t.sales_cash)}</strong></div>
+            <div class="summary-item"><p>💳 Ventas tarjeta</p><strong>${money.format(t.sales_card)}</strong></div>
+            <div class="summary-item"><p>📲 Ventas transferencia</p><strong>${money.format(t.sales_transfer)}</strong></div>
+            <div class="summary-item"><p>🧾 Ventas a crédito</p><strong>${money.format(t.sales_credit)}</strong></div>
+          `;
+          document.getElementById('shiftSummaryArea').appendChild(salesArea);
+        }
+      } catch { /* resumen es informativo; no bloquea el cierre si falla */ }
     }
 
     document.getElementById('cancelShiftManage').addEventListener('click', () => closeModal('shiftManageModal'));

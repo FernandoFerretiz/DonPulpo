@@ -24,6 +24,16 @@ Route::middleware('auth.pos')->group(function () {
         // Cobrar una orden (registra movimiento de caja → requiere user_id real)
         Route::post('orders/{id}/pay', [\App\Http\Controllers\Api\V1\OrderController::class, 'pay']);
 
+        // Ticket de venta en PDF (mientras no hay impresora térmica integrada)
+        Route::get('orders/{id}/ticket', [\App\Http\Controllers\Api\V1\OrderController::class, 'ticket']);
+
+        // Comanda de cocina — se imprime aunque la orden no esté pagada
+        Route::get('orders/{id}/comanda', [\App\Http\Controllers\Api\V1\OrderController::class, 'comanda']);
+
+        // Clientes (para pagos a crédito)
+        Route::get('customers',  [\App\Http\Controllers\Api\V1\CustomerController::class, 'index']);
+        Route::post('customers', [\App\Http\Controllers\Api\V1\CustomerController::class, 'store']);
+
         // Turnos
         Route::get('shifts/active',           [ShiftController::class, 'active']);
         Route::post('shifts',                 [ShiftController::class, 'open']);

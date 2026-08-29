@@ -14,6 +14,7 @@ class PosOrder extends Model
         'order_number',
         'user_id',
         'customer_name',
+        'customer_id',
         'table_name',
         'order_type',
         'subtotal',
@@ -26,6 +27,9 @@ class PosOrder extends Model
         'status',
         'notes',
         'paid_at',
+        'cancelled_by',
+        'cancelled_at',
+        'cancel_reason',
     ];
 
     protected function casts(): array
@@ -38,6 +42,7 @@ class PosOrder extends Model
             'discount_amount'  => 'decimal:2',
             'total'            => 'decimal:2',
             'paid_at'          => 'datetime',
+            'cancelled_at'     => 'datetime',
         ];
     }
 
@@ -54,5 +59,15 @@ class PosOrder extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 }

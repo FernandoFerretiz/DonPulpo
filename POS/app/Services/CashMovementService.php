@@ -43,11 +43,12 @@ class CashMovementService
             'cash'     => CashMovement::TYPE_VENTA_EFECTIVO,
             'card'     => CashMovement::TYPE_VENTA_TARJETA,
             'transfer' => CashMovement::TYPE_VENTA_TRANSFERENCIA,
+            'credit'   => CashMovement::TYPE_VENTA_CREDITO,
             default    => CashMovement::TYPE_VENTA_EFECTIVO,
         };
 
         // El efectivo tendido menos el cambio entregado es lo que realmente
-        // queda en caja; en tarjeta/transferencia no aplica cambio.
+        // queda en caja; en tarjeta/transferencia/crédito no aplica cambio.
         $netAmount = $payment->method === 'cash'
             ? (float) $payment->amount - (float) $payment->change_amount
             : (float) $payment->amount;

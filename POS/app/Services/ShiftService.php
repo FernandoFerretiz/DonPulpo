@@ -98,6 +98,7 @@ class ShiftService
                 'sales_cash'     => (float) $movements->where('type', CashMovement::TYPE_VENTA_EFECTIVO)->sum('amount'),
                 'sales_card'     => (float) $movements->where('type', CashMovement::TYPE_VENTA_TARJETA)->sum('amount'),
                 'sales_transfer' => (float) $movements->where('type', CashMovement::TYPE_VENTA_TRANSFERENCIA)->sum('amount'),
+                'sales_credit'   => (float) $movements->where('type', CashMovement::TYPE_VENTA_CREDITO)->sum('amount'),
                 'income_manual'  => (float) $movements->where('type', CashMovement::TYPE_INGRESO_MANUAL)->sum('amount'),
                 'vouchers_paid'  => (float) $movements->where('type', CashMovement::TYPE_VALE_CAJA_CHICA)->sum('amount'),
                 'withdrawals'    => (float) $movements->where('type', CashMovement::TYPE_RETIRO_EFECTIVO)->sum('amount'),

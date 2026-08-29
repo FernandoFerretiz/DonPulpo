@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
 use App\Services\CashMovementService;
@@ -11,7 +12,9 @@ use App\Services\PaymentService;
 use App\Services\ShiftService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
@@ -24,7 +27,7 @@ class OrderController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = PosOrder::with(['items', 'user'])->orderByDesc('created_at');
+        $query = PosOrder::with(['items', 'user', 'cancelledBy'])->orderByDesc('created_at');
 
         if ($request->query('status')) {
             $query->where('status', $request->query('status'));
@@ -62,7 +65,7 @@ class OrderController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $order = PosOrder::with(['items', 'payments', 'user'])->findOrFail($id);
+        $order = PosOrder::with(['items', 'payments', 'user', 'cancelledBy'])->findOrFail($id);
         return response()->json(['success' => true, 'data' => $order, 'message' => 'Orden obtenida correctamente']);
     }
 
@@ -95,12 +98,21 @@ class OrderController extends Controller
         }
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
+        if (Auth::user()?->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo un administrador puede eliminar órdenes.',
+            ], 403);
+        }
+
         $order = PosOrder::findOrFail($id);
 
+        $request->validate(['reason' => 'nullable|string|max:255']);
+
         try {
-            $this->orderService->cancelOrder($order);
+            $this->orderService->cancelOrder($order, Auth::id(), $request->input('reason'));
             return response()->json(['success' => true, 'data' => null, 'message' => 'Orden cancelada correctamente']);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -167,29 +179,48 @@ class OrderController extends Controller
 
         $request->validate([
             'payments'          => 'required|array|min:1',
-            'payments.*.method' => 'required|in:cash,card,transfer',
+            'payments.*.method' => 'required|in:cash,card,transfer,credit',
             'payments.*.amount' => 'required|numeric|min:0.01',
         ]);
 
-        $hasCash     = collect($request->payments)->contains('method', 'cash');
+        $hasCredit = collect($request->payments)->contains('method', 'credit');
+
+        if ($hasCredit) {
+            $request->validate([
+                'customer_id' => 'required|integer|exists:customers,id',
+            ]);
+        }
+
         $activeShift = $this->shiftService->getActiveShift();
 
-        if ($hasCash && !$activeShift) {
+        if (!$activeShift) {
             return response()->json([
                 'success' => false,
-                'message' => 'No hay turno abierto. Abre un turno antes de cobrar en efectivo.',
+                'message' => 'No hay turno abierto. Abre un turno antes de cobrar.',
             ], 422);
+        }
+
+        if ($hasCredit) {
+            $customer     = Customer::findOrFail($request->customer_id);
+            $creditAmount = collect($request->payments)
+                ->where('method', 'credit')
+                ->sum(fn($p) => (float) ($p['amount'] ?? 0));
+
+            if ($customer->credit_limit !== null && ((float) $customer->balance + $creditAmount) > (float) $customer->credit_limit) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El cliente excede su límite de crédito.',
+                ], 422);
+            }
         }
 
         try {
             $userId = Auth::id() ?? 0;
-            $result = $this->paymentService->payMultiple($order, $request->payments, $userId);
+            $result = $this->paymentService->payMultiple($order, $request->payments, $userId, $request->customer_id);
 
-            // Register a cash movement for every payment (cash affects expected_cash; card/transfer are for reporting)
-            if ($activeShift) {
-                foreach ($result['payments'] as $payment) {
-                    $this->cashMovementService->registerSalePayment($activeShift, $order, $payment, $userId);
-                }
+            // Register a cash movement for every payment (cash affects expected_cash; card/transfer/credit are for reporting only)
+            foreach ($result['payments'] as $payment) {
+                $this->cashMovementService->registerSalePayment($activeShift, $order, $payment, $userId);
             }
 
             return response()->json([
@@ -200,5 +231,100 @@ class OrderController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
+    }
+
+    public function ticket(int $id): Response
+    {
+        $order = PosOrder::with(['items', 'payments', 'user'])->findOrFail($id);
+
+        $orderTypeLabels = [
+            'dine_in'  => 'Comer aquí',
+            'takeout'  => 'Para llevar',
+            'delivery' => 'A domicilio',
+        ];
+
+        $paymentMethodLabels = [
+            'cash'     => 'Efectivo',
+            'card'     => 'Tarjeta',
+            'transfer' => 'Transferencia',
+            'credit'   => 'Crédito',
+        ];
+
+        $entered        = $order->payments->sum('amount');
+        $totalBeforeTip = round((float) $order->total - (float) $order->tip, 2);
+        $change         = max(0, round($entered - (float) $order->total, 2));
+
+        $pdf = Pdf::loadView('pos.ticket', [
+            'order'                => $order,
+            'businessName'         => config('app.name'),
+            'logoDataUri'          => $this->logoDataUri(),
+            'orderTypeLabel'       => $orderTypeLabels[$order->order_type] ?? $order->order_type,
+            'paymentMethodLabels'  => $paymentMethodLabels,
+            'totalBeforeTip'       => $totalBeforeTip,
+            'change'               => $change,
+        ]);
+
+        $pdf->setPaper([0, 0, 226.77, 1600]);
+
+        return $pdf->stream("ticket-{$order->order_number}.pdf");
+    }
+
+    public function comanda(Request $request, int $id): Response
+    {
+        $order = PosOrder::with(['items', 'user'])->findOrFail($id);
+
+        $orderTypeLabels = [
+            'dine_in'  => 'Comer aquí',
+            'takeout'  => 'Para llevar',
+            'delivery' => 'A domicilio',
+        ];
+
+        // Reimpresión completa (p. ej. se atascó el papel): muestra todo, sin marcar nada
+        // como enviado ni afectar el rastreo de lo que ya se mandó a cocina.
+        $full = $request->boolean('full');
+
+        $lines = [];
+        foreach ($order->items as $item) {
+            $pendingQty = $full ? $item->quantity : ($item->quantity - $item->sent_to_kitchen_qty);
+            if ($pendingQty <= 0) {
+                continue;
+            }
+            $lines[] = [
+                'name'          => $item->name_snapshot,
+                'quantity'      => $pendingQty,
+                'notes'         => $item->notes,
+                'is_addition'   => !$full && $item->sent_to_kitchen_qty > 0,
+            ];
+        }
+
+        $pdf = Pdf::loadView('pos.comanda', [
+            'order'          => $order,
+            'orderTypeLabel' => $orderTypeLabels[$order->order_type] ?? $order->order_type,
+            'lines'          => $lines,
+            'isReprint'      => $full,
+        ]);
+
+        $pdf->setPaper([0, 0, 226.77, 1600]);
+
+        if (!$full) {
+            foreach ($order->items as $item) {
+                if ($item->sent_to_kitchen_qty < $item->quantity) {
+                    $item->update(['sent_to_kitchen_qty' => $item->quantity]);
+                }
+            }
+        }
+
+        return $pdf->stream("comanda-{$order->order_number}.pdf");
+    }
+
+    private function logoDataUri(): ?string
+    {
+        $path = resource_path('images/logo-mono.png');
+
+        if (!file_exists($path)) {
+            return null;
+        }
+
+        return 'data:image/png;base64,' . base64_encode(file_get_contents($path));
     }
 }

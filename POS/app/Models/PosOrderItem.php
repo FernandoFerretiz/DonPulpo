@@ -15,6 +15,7 @@ class PosOrderItem extends Model
         'name_snapshot',
         'unit_price',
         'quantity',
+        'sent_to_kitchen_qty',
         'line_total',
         'notes',
     ];
@@ -22,9 +23,10 @@ class PosOrderItem extends Model
     protected function casts(): array
     {
         return [
-            'unit_price' => 'decimal:2',
-            'line_total' => 'decimal:2',
-            'quantity'   => 'integer',
+            'unit_price'          => 'decimal:2',
+            'line_total'          => 'decimal:2',
+            'quantity'            => 'integer',
+            'sent_to_kitchen_qty' => 'integer',
         ];
     }
 
