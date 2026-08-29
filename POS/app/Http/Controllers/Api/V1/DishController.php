@@ -11,7 +11,7 @@ class DishController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Dish::with('category')->orderBy('name');
+        $query = Dish::with(['category', 'modifierGroups', 'modifierOptions.group'])->orderBy('name');
 
         if ($request->query('status')) {
             $query->where('status', $request->query('status'));

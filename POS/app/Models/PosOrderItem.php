@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PosOrderItem extends Model
 {
@@ -38,5 +39,10 @@ class PosOrderItem extends Model
     public function dish(): BelongsTo
     {
         return $this->belongsTo(Dish::class);
+    }
+
+    public function modifiers(): HasMany
+    {
+        return $this->hasMany(PosOrderItemModifier::class);
     }
 }

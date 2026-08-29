@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Dish;
+use App\Models\ModifierOption;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
 use Illuminate\Support\Str;
@@ -53,8 +54,32 @@ class OrderService
 
         $dish     = isset($item['dish_id']) ? Dish::find($item['dish_id']) : null;
         $name     = $item['name_snapshot'] ?? $dish?->name ?? 'Producto';
-        $price    = (float) ($item['unit_price'] ?? $dish?->price ?? 0);
         $quantity = (int) ($item['quantity'] ?? 1);
+
+        $modifierOptionIds = $item['modifier_option_ids'] ?? [];
+        $modifierOptions   = $modifierOptionIds
+            ? ModifierOption::with('group')->whereIn('id', $modifierOptionIds)->get()
+            : collect();
+
+        // El precio de cada opción es específico del platillo (mismo grupo "Tamaño" puede
+        // costar distinto en cada caldo), así que se busca en la tabla dish_modifier_options
+        // en vez de usar un precio fijo del modificador.
+        $dishOptionPrices = ($dish && $modifierOptions->isNotEmpty())
+            ? $dish->modifierOptions()->whereIn('modifier_options.id', $modifierOptions->pluck('id'))
+                ->pluck('dish_modifier_options.price_delta', 'modifier_options.id')
+            : collect();
+
+        $price = (float) ($item['unit_price'] ?? $dish?->price ?? 0);
+        foreach ($modifierOptions as $option) {
+            $optionPrice = (float) ($dishOptionPrices[$option->id] ?? 0);
+            $price = $option->group->pricing_mode === 'absolute'
+                ? $optionPrice
+                : $price + $optionPrice;
+        }
+
+        if ($price <= 0) {
+            throw new \RuntimeException("\"{$name}\" no tiene un precio configurado. Revísalo en el menú antes de venderlo.");
+        }
 
         $orderItem = PosOrderItem::create([
             'pos_order_id'         => $order->id,
@@ -68,6 +93,15 @@ class OrderService
             'line_total'           => round($price * $quantity, 2),
             'notes'                => $item['notes'] ?? null,
         ]);
+
+        foreach ($modifierOptions as $option) {
+            $orderItem->modifiers()->create([
+                'modifier_option_id'   => $option->id,
+                'group_name_snapshot'  => $option->group->name,
+                'option_name_snapshot' => $option->name,
+                'price_delta_snapshot' => $dishOptionPrices[$option->id] ?? 0,
+            ]);
+        }
 
         $this->recalculateTotals($order);
 

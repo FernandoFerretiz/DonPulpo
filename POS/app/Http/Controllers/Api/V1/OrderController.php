@@ -27,7 +27,7 @@ class OrderController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = PosOrder::with(['items', 'user', 'cancelledBy'])->orderByDesc('created_at');
+        $query = PosOrder::with(['items.modifiers', 'user', 'cancelledBy'])->orderByDesc('created_at');
 
         if ($request->query('status')) {
             $query->where('status', $request->query('status'));
@@ -46,6 +46,8 @@ class OrderController extends Controller
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.quantity'  => 'required|integer|min:1',
             'items.*.notes'     => 'nullable|string|max:255',
+            'items.*.modifier_option_ids'   => 'nullable|array',
+            'items.*.modifier_option_ids.*' => 'integer|exists:modifier_options,id',
             'tip'               => 'nullable|numeric|min:0',
             'notes'             => 'nullable|string|max:500',
             'customer_name'     => 'nullable|string|max:255',
@@ -65,7 +67,7 @@ class OrderController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $order = PosOrder::with(['items', 'payments', 'user', 'cancelledBy'])->findOrFail($id);
+        $order = PosOrder::with(['items.modifiers', 'payments', 'user', 'cancelledBy'])->findOrFail($id);
         return response()->json(['success' => true, 'data' => $order, 'message' => 'Orden obtenida correctamente']);
     }
 
@@ -86,6 +88,8 @@ class OrderController extends Controller
             'items.*.unit_price'     => 'required_with:items|numeric|min:0',
             'items.*.quantity'       => 'required_with:items|integer|min:1',
             'items.*.notes'          => 'nullable|string|max:255',
+            'items.*.modifier_option_ids'   => 'nullable|array',
+            'items.*.modifier_option_ids.*' => 'integer|exists:modifier_options,id',
             'discount_code'          => 'nullable|string|max:50',
             'discount_percent'       => 'nullable|numeric|min:0|max:100',
         ]);
@@ -129,6 +133,8 @@ class OrderController extends Controller
             'unit_price'    => 'required|numeric|min:0',
             'quantity'      => 'required|integer|min:1',
             'notes'         => 'nullable|string|max:255',
+            'modifier_option_ids'   => 'nullable|array',
+            'modifier_option_ids.*' => 'integer|exists:modifier_options,id',
         ]);
 
         try {
@@ -235,7 +241,7 @@ class OrderController extends Controller
 
     public function ticket(int $id): Response
     {
-        $order = PosOrder::with(['items', 'payments', 'user'])->findOrFail($id);
+        $order = PosOrder::with(['items.modifiers', 'payments', 'user'])->findOrFail($id);
 
         $orderTypeLabels = [
             'dine_in'  => 'Comer aquí',
@@ -271,7 +277,7 @@ class OrderController extends Controller
 
     public function comanda(Request $request, int $id): Response
     {
-        $order = PosOrder::with(['items', 'user'])->findOrFail($id);
+        $order = PosOrder::with(['items.modifiers', 'user'])->findOrFail($id);
 
         $orderTypeLabels = [
             'dine_in'  => 'Comer aquí',

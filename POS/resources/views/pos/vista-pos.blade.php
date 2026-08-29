@@ -412,6 +412,17 @@
   <!-- ══════════════════════════════════════════
        MODAL: Guardar orden (pedir mesa)
   ═══════════════════════════════════════════ -->
+  <div class="modal-overlay" id="modifierModal">
+    <div class="modal-box" style="max-width:420px">
+      <h3 id="modifierModalTitle">Elige las opciones</h3>
+      <div id="modifierModalBody"></div>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="cancelModifierModal" type="button">Cancelar</button>
+        <button class="modal-confirm" id="confirmModifierModal" type="button">➕ Agregar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="tableModal">
     <div class="modal-box">
       <h3>🍽️ Guardar orden</h3>
@@ -987,18 +998,105 @@
       const btn = e.target.closest('[data-add]');
       if (!btn) return;
       const dish = state.allDishes.find(d => d.id === Number(btn.dataset.add));
-      if (dish) addToCart(dish);
+      if (!dish) return;
+      if (dish.modifier_groups && dish.modifier_groups.length) {
+        openModifierModal(dish);
+      } else {
+        addToCart(dish);
+      }
+    });
+
+    // ─────────────────────────────────────────────────────────────
+    //  Modificadores (ej: Tamaño CH/MED/GR, Sabor negro/verde/rojo)
+    // ─────────────────────────────────────────────────────────────
+    function priceWithModifiers(basePrice, modifiers) {
+      let price = parseFloat(basePrice);
+      for (const m of modifiers) {
+        price = m.pricingMode === 'absolute' ? m.priceDelta : price + m.priceDelta;
+      }
+      return price;
+    }
+
+    function openModifierModal(dish) {
+      state.modifierDish = dish;
+      document.getElementById('modifierModalTitle').textContent = dish.name;
+      document.getElementById('modifierModalBody').innerHTML = dish.modifier_groups.map(group => {
+        const inputType = group.selection_type === 'single' ? 'radio' : 'checkbox';
+        const optionsHtml = group.options.map((opt, i) => {
+          const delta = parseFloat(opt.price_delta);
+          let priceLabel = '';
+          if (group.pricing_mode === 'absolute') priceLabel = money.format(delta);
+          else if (delta !== 0) priceLabel = `${delta > 0 ? '+' : ''}${money.format(delta)}`;
+          const checkedAttr = (i === 0 && group.selection_type === 'single') ? 'checked' : '';
+          return `
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer">
+              <input type="${inputType}" name="mgroup-${group.id}" value="${opt.id}" ${checkedAttr} />
+              <span>${opt.name}${priceLabel ? ` <span style="color:var(--ink-500)">(${priceLabel})</span>` : ''}</span>
+            </label>`;
+        }).join('');
+        return `
+          <div class="field">
+            <label>${group.name}${group.required ? ' <span style="color:var(--coral-600)">*</span>' : ''}</label>
+            <div class="modifier-group" data-group="${group.id}" data-required="${group.required ? '1' : '0'}" data-selection="${group.selection_type}">
+              ${optionsHtml}
+            </div>
+          </div>`;
+      }).join('');
+      openModal('modifierModal');
+    }
+
+    document.getElementById('cancelModifierModal').addEventListener('click', () => closeModal('modifierModal'));
+
+    document.getElementById('confirmModifierModal').addEventListener('click', () => {
+      const dish = state.modifierDish;
+      if (!dish) return;
+
+      const selected = [];
+      let missingRequired = false;
+
+      document.querySelectorAll('#modifierModalBody .modifier-group').forEach(el => {
+        const groupId  = Number(el.dataset.group);
+        const required = el.dataset.required === '1';
+        const group    = dish.modifier_groups.find(g => g.id === groupId);
+        const checked  = [...el.querySelectorAll('input:checked')];
+
+        if (required && checked.length === 0) missingRequired = true;
+
+        checked.forEach(input => {
+          const opt = group.options.find(o => o.id === Number(input.value));
+          if (!opt) return;
+          selected.push({
+            id: opt.id,
+            groupName: group.name,
+            optionName: opt.name,
+            priceDelta: parseFloat(opt.price_delta),
+            pricingMode: group.pricing_mode,
+          });
+        });
+      });
+
+      if (missingRequired) { toast('Elige una opción para los modificadores obligatorios', 'error'); return; }
+
+      addToCart(dish, selected);
+      closeModal('modifierModal');
     });
 
     // ─────────────────────────────────────────────────────────────
     //  Carrito
     // ─────────────────────────────────────────────────────────────
-    function addToCart(dish) {
-      const key = dish.id;
+    function addToCart(dish, modifiers = []) {
+      const price = priceWithModifiers(dish.price, modifiers);
+      if (!(price > 0)) {
+        toast('Este platillo no tiene un precio configurado. Avisa al administrador antes de venderlo.', 'error');
+        return;
+      }
+
+      const modKey = modifiers.length ? modifiers.map(m => m.id).sort((a, b) => a - b).join('-') : '';
+      const key   = modKey ? `${dish.id}:${modKey}` : String(dish.id);
       const existing = state.cart.get(key);
       state.cart.set(key, existing
         ? { ...existing, qty: existing.qty + 1 }
-        : { key, name: dish.name, price: parseFloat(dish.price), qty: 1, dishId: dish.id, notes: '' });
+        : { key, name: dish.name, price, basePrice: parseFloat(dish.price), qty: 1, dishId: dish.id, notes: '', modifiers });
       invalidateSavedOrder();
       renderCart();
     }
@@ -1050,7 +1148,7 @@
         updateTotals(0); return;
       }
 
-      cartList.innerHTML = items.map(({ key, name, price, qty, notes }) => `
+      cartList.innerHTML = items.map(({ key, name, price, qty, notes, modifiers }) => `
         <article class="cart-item">
           <div class="cart-thumb">🍽️</div>
           <div class="cart-main">
@@ -1061,6 +1159,10 @@
               </div>
               <button class="trash-btn" data-remove="${key}" type="button">🗑</button>
             </div>
+            ${(modifiers && modifiers.length) ? `
+              <div class="cart-modifiers" style="font-size:12px;color:var(--ink-500);margin:2px 0 6px">
+                ${modifiers.map(m => `${m.groupName}: ${m.optionName}`).join(' · ')}
+              </div>` : ''}
             <div class="cart-controls">
               <div class="qty-group">
                 <button class="qty-btn" data-dec="${key}" type="button">−</button>
@@ -1083,15 +1185,15 @@
       const inc    = e.target.closest('[data-inc]');
       const dec    = e.target.closest('[data-dec]');
       const remove = e.target.closest('[data-remove]');
-      if (inc)    changeQty(Number(inc.dataset.inc),  +1);
-      if (dec)    changeQty(Number(dec.dataset.dec),  -1);
-      if (remove) removeFromCart(Number(remove.dataset.remove));
+      if (inc)    changeQty(inc.dataset.inc,  +1);
+      if (dec)    changeQty(dec.dataset.dec,  -1);
+      if (remove) removeFromCart(remove.dataset.remove);
     });
 
     document.getElementById('cartList').addEventListener('input', e => {
       const inp = e.target.closest('.item-notes');
       if (!inp) return;
-      const key   = Number(inp.dataset.notesKey);
+      const key   = inp.dataset.notesKey;
       const entry = state.cart.get(key);
       if (entry) state.cart.set(key, { ...entry, notes: inp.value });
     });
@@ -1225,12 +1327,16 @@
     //  Helpers de payload
     // ─────────────────────────────────────────────────────────────
     function buildItems() {
-      return [...state.cart.values()].map(({ dishId, name, price, qty, notes }) => ({
-        dish_id:       dishId ?? null,
-        name_snapshot: name,
-        unit_price:    price,
-        quantity:      qty,
-        notes:         notes || null,
+      // unit_price manda el precio BASE del platillo; el backend es quien aplica los
+      // modificadores (usa el precio por platillo real de dish_modifier_options), para
+      // no duplicar el ajuste que ya se ve reflejado en el carrito.
+      return [...state.cart.values()].map(({ dishId, name, basePrice, price, qty, notes, modifiers }) => ({
+        dish_id:              dishId ?? null,
+        name_snapshot:        name,
+        unit_price:           basePrice ?? price,
+        quantity:             qty,
+        notes:                notes || null,
+        modifier_option_ids:  (modifiers ?? []).map(m => m.id),
       }));
     }
 
@@ -1474,9 +1580,22 @@
         setOrderType(order.order_type ?? 'dine_in');
 
         for (const item of (order.items ?? [])) {
-          const key   = item.dish_id ?? -(item.id);  // clave por dish_id o negativa por ítem
+          const modifiers = (item.modifiers ?? []).map(m => ({
+            id: m.modifier_option_id,
+            groupName: m.group_name_snapshot,
+            optionName: m.option_name_snapshot,
+            priceDelta: parseFloat(m.price_delta_snapshot),
+          }));
+          const modKey = modifiers.length ? modifiers.map(m => m.id).sort((a, b) => a - b).join('-') : '';
+          const baseKey = item.dish_id ?? `item-${item.id}`;  // clave por dish_id o por ítem si no viene de un platillo
+          const key = modKey ? `${baseKey}:${modKey}` : String(baseKey);
           const price = parseFloat(item.unit_price);
           const qty   = parseInt(item.quantity);
+          // El precio guardado en la orden ya incluye el ajuste de los modificadores; para
+          // poder re-enviar el ítem sin duplicar ese ajuste, se recupera el precio BASE
+          // del platillo desde el menú (el backend vuelve a calcular el precio final).
+          const menuDish  = state.allDishes.find(d => d.id === item.dish_id);
+          const basePrice = menuDish ? parseFloat(menuDish.price) : price;
           const existing = state.cart.get(key);
           if (existing) {
             state.cart.set(key, { ...existing, qty: existing.qty + qty });
@@ -1485,8 +1604,11 @@
               key,
               name:   item.name_snapshot,
               price,
+              basePrice,
               qty,
               dishId: item.dish_id ?? null,
+              notes:  item.notes ?? '',
+              modifiers,
             });
           }
         }
