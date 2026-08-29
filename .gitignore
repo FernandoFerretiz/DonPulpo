@@ -2,6 +2,14 @@
 mysql_data/
 redis_data/
 
+# Env files
+.env
+.env.backup
+!.env.example
+
+# Storage folders
+storage/
+
 # IDE / OS
 .idea/
 .vscode/

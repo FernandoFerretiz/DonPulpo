@@ -6,59 +6,132 @@
     <a href="{{ route('dish-categories.create') }}" class="btn btn-dp">+ Nueva categoría</a>
 </div>
 
-<form method="GET" action="{{ route('dish-categories.index') }}" class="mb-3">
+<div class="mb-3">
     <div class="input-group" style="max-width:380px;">
-        <input type="search" name="search" class="form-control" placeholder="Buscar categoría…"
+        <input type="search" id="categorySearchInput" class="form-control" placeholder="Buscar categoría…"
                value="{{ $search ?? '' }}" autocomplete="off">
-        <button class="btn btn-outline-secondary" type="submit">Buscar</button>
-        @if($search)
-            <a href="{{ route('dish-categories.index') }}" class="btn btn-outline-secondary">✕</a>
-        @endif
-    </div>
-</form>
-
-<div class="card shadow-sm border-0">
-    <div class="table-responsive">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>#</th>
-                    <th>Nombre</th>
-                    <th>Slug</th>
-                    <th>Orden</th>
-                    <th>Platillos</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($categories as $cat)
-                <tr>
-                    <td>{{ $cat->id }}</td>
-                    <td>{{ $cat->name }}</td>
-                    <td><code>{{ $cat->slug }}</code></td>
-                    <td>{{ $cat->display_order }}</td>
-                    <td>{{ $cat->dishes_count }}</td>
-                    <td>
-                        <span class="badge {{ $cat->status === 'active' ? 'badge-active' : 'badge-inactive' }}">
-                            {{ $cat->getStatusLabel() }}
-                        </span>
-                    </td>
-                    <td>
-                        <a href="{{ route('dish-categories.edit', $cat) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
-                        <form action="{{ route('dish-categories.destroy', $cat) }}" method="POST" class="d-inline"
-                              onsubmit="return confirm('¿Eliminar esta categoría?')">
-                            @csrf @method('DELETE')
-                            <button class="btn btn-sm btn-outline-danger">Eliminar</button>
-                        </form>
-                    </td>
-                </tr>
-                @empty
-                <tr><td colspan="7" class="text-center text-muted py-4">No hay categorías registradas.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+        <button class="btn btn-outline-secondary" type="button" id="categorySearchClear">✕</button>
     </div>
 </div>
-<div class="mt-3">{{ $categories->links() }}</div>
+
+<div id="categoryTableContainer">
+    @include('dish-categories._table')
+</div>
+
+{{-- ══════════════════════════════════════════
+     MODAL: Editar categoría
+═══════════════════════════════════════════ --}}
+<div class="modal fade" id="categoryEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog" style="max-width:520px">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar categoría</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="categoryEditModalBody">
+                <div class="text-center text-muted py-4">Cargando…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const searchInput  = document.getElementById('categorySearchInput');
+    const clearBtn     = document.getElementById('categorySearchClear');
+    const tableWrap    = document.getElementById('categoryTableContainer');
+    const modalEl      = document.getElementById('categoryEditModal');
+    const modalBody    = document.getElementById('categoryEditModalBody');
+    // bootstrap.bundle.min.js se carga al final del layout, después de este bloque,
+    // así que la instancia del modal se crea al primer uso (no al cargar la página).
+    function getModal() { return bootstrap.Modal.getOrCreateInstance(modalEl); }
+    const indexUrl     = @json(route('dish-categories.index'));
+    let debounceTimer  = null;
+
+    async function runSearch() {
+        const q   = searchInput.value.trim();
+        const url = indexUrl + '?partial=1' + (q ? '&search=' + encodeURIComponent(q) : '');
+        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        tableWrap.innerHTML = await res.text();
+    }
+
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(runSearch, 300);
+    });
+
+    clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        runSearch();
+    });
+
+    tableWrap.addEventListener('click', async e => {
+        const editBtn = e.target.closest('.js-edit-category');
+        if (editBtn) { await openEditModal(editBtn.dataset.id); return; }
+
+        const link = e.target.closest('.pagination a');
+        if (link) {
+            e.preventDefault();
+            const res = await fetch(link.href + (link.href.includes('?') ? '&' : '?') + 'partial=1', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            tableWrap.innerHTML = await res.text();
+        }
+    });
+
+    async function openEditModal(id) {
+        modalBody.innerHTML = '<div class="text-center text-muted py-4">Cargando…</div>';
+        getModal().show();
+        try {
+            const res = await fetch(`/dish-categories/${id}/edit?modal=1`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            modalBody.innerHTML = await res.text();
+            bindEditForm();
+        } catch {
+            modalBody.innerHTML = '<div class="alert alert-danger mb-0">No se pudo cargar la categoría.</div>';
+        }
+    }
+
+    function bindEditForm() {
+        const form = document.getElementById('categoryEditForm');
+        if (!form) return;
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            const btn = form.querySelector('button[type=submit]');
+            const originalText = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Guardando...';
+
+            try {
+                const res = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const json = await res.json();
+
+                if (res.ok && json.success) {
+                    getModal().hide();
+                    await runSearch();
+                } else if (res.status === 422) {
+                    showFormErrors(json.errors || {});
+                } else {
+                    showFormErrors({}, json.message || 'Ocurrió un error al guardar.');
+                }
+            } catch {
+                showFormErrors({}, 'Error de conexión.');
+            } finally {
+                btn.disabled = false; btn.textContent = originalText;
+            }
+        });
+    }
+
+    function showFormErrors(errors, genericMessage) {
+        const box = document.getElementById('categoryFormErrors');
+        if (!box) return;
+        const messages = genericMessage ? [genericMessage] : Object.values(errors).flat();
+        box.innerHTML = messages.length
+            ? `<div class="alert alert-danger"><ul class="mb-0">${messages.map(m => `<li>${m}</li>`).join('')}</ul></div>`
+            : '';
+    }
+})();
+</script>
 @endsection

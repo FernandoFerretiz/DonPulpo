@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DishCategory;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -19,6 +20,11 @@ class DishCategoryController extends Controller
             ->orderBy('display_order')
             ->paginate(20)
             ->withQueryString();
+
+        if ($request->boolean('partial')) {
+            return view('dish-categories._table', compact('categories', 'search'));
+        }
+
         return view('dish-categories.index', compact('categories', 'search'));
     }
 
@@ -44,15 +50,21 @@ class DishCategoryController extends Controller
         return redirect()->route('dish-categories.index')->with('success', 'Categoría creada correctamente.');
     }
 
-    public function edit(DishCategory $dishCategory): View
+    public function edit(Request $request, DishCategory $dishCategory): View
     {
-        return view('dish-categories.edit', [
+        $data = [
             'category' => $dishCategory,
             'statuses' => DishCategory::STATUSES,
-        ]);
+        ];
+
+        if ($request->boolean('modal')) {
+            return view('dish-categories._form', $data);
+        }
+
+        return view('dish-categories.edit', $data);
     }
 
-    public function update(Request $request, DishCategory $dishCategory): RedirectResponse
+    public function update(Request $request, DishCategory $dishCategory): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'name'          => 'required|string|max:255',
@@ -65,6 +77,10 @@ class DishCategoryController extends Controller
         $validated['display_order'] = $validated['display_order'] ?? 0;
 
         $dishCategory->update($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Categoría actualizada correctamente.']);
+        }
 
         return redirect()->route('dish-categories.index')->with('success', 'Categoría actualizada correctamente.');
     }

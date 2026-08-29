@@ -69,6 +69,37 @@
                 </select>
             </div>
 
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Modificadores</label>
+                @forelse($modifierGroups as $group)
+                    @php $checked = collect(old('modifier_group_ids'))->contains($group->id); @endphp
+                    <div class="border rounded p-2 mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input group-toggle" type="checkbox" name="modifier_group_ids[]" value="{{ $group->id }}"
+                                   id="mg{{ $group->id }}" data-target="group-options-{{ $group->id }}" {{ $checked ? 'checked' : '' }} />
+                            <label class="form-check-label fw-semibold" for="mg{{ $group->id }}">
+                                {{ $group->name }}
+                                <small class="text-muted">({{ $group->pricing_mode === 'absolute' ? 'precio por opción' : 'ajuste sobre el precio' }})</small>
+                            </label>
+                        </div>
+                        <div id="group-options-{{ $group->id }}" style="display:{{ $checked ? 'block' : 'none' }}" class="mt-2 ps-4">
+                            @foreach($group->options as $option)
+                                <div class="input-group input-group-sm mb-1" style="max-width:280px">
+                                    <span class="input-group-text" style="min-width:80px">{{ $option->name }}</span>
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" name="modifier_prices[{{ $option->id }}]" class="form-control"
+                                           value="{{ old("modifier_prices.{$option->id}", 0) }}" placeholder="0.00" />
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-muted small">
+                        No hay grupos de modificadores creados. <a href="{{ route('modifier-groups.create') }}">Crear uno</a>.
+                    </div>
+                @endforelse
+            </div>
+
             <button type="submit" class="btn btn-dp w-100">Crear platillo</button>
         </form>
     </div>
@@ -85,6 +116,11 @@ document.getElementById('imageInput').addEventListener('change', function () {
     } else {
         wrap.style.display = 'none';
     }
+});
+document.querySelectorAll('.group-toggle').forEach(cb => {
+    cb.addEventListener('change', function () {
+        document.getElementById(this.dataset.target).style.display = this.checked ? 'block' : 'none';
+    });
 });
 </script>
 @endsection

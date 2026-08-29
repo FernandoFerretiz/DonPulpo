@@ -26,6 +26,9 @@
     $totalOrdersAmount = collect($orderTypeSummary)->sum('total');
     $orderTypeLabels   = ['dine_in' => 'Restaurante', 'takeout' => 'Para llevar', 'delivery' => 'Domicilio'];
 
+    $creditOrders      = $shift->creditOrders()->values();
+    $creditOrdersTotal = (float) $creditOrders->sum('total');
+
     $badge = match($shift->status) {
         'open'      => 'info',
         'closed'    => 'success',
@@ -92,6 +95,10 @@
         <hr class="my-2">
         <div class="text-center text-muted" style="font-size:.85rem">
             Total de pedidos: {{ $totalOrders }} · ${{ number_format($totalOrdersAmount, 2) }}
+            <br>
+            <span style="font-size:.78rem">
+                No incluye ventas a crédito (${{ number_format($creditOrdersTotal, 2) }}) — no representan efectivo/tarjeta/transferencia recibido en caja.
+            </span>
         </div>
     </div>
 </div>
@@ -105,8 +112,8 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
-                <div class="row g-0">
-                    <div class="col-4 border-end" style="max-height:70vh;overflow-y:auto">
+                <div class="row g-0 order-modal-row">
+                    <div class="col-md-4 order-list-col border-end" style="max-height:70vh;overflow-y:auto">
                         <div class="list-group list-group-flush">
                             @forelse($ordersByType[$type] as $i => $order)
                                 <button type="button"
@@ -126,7 +133,8 @@
                             @endforelse
                         </div>
                     </div>
-                    <div class="col-8 p-3 order-detail-container" style="max-height:70vh;overflow-y:auto">
+                    <div class="col-md-8 p-3 order-detail-container order-detail-col" style="max-height:70vh;overflow-y:auto">
+                        <button type="button" class="btn btn-sm btn-outline-secondary mb-2 order-list-toggle-btn">📋 Ver pedidos</button>
                         @forelse($ordersByType[$type] as $i => $order)
                             <div id="order-detail-{{ $type }}-{{ $order->id }}" class="order-detail-panel {{ $i === 0 ? '' : 'd-none' }}">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
@@ -180,7 +188,7 @@
                                     <div class="fw-semibold mb-1">Pagos</div>
                                     @foreach($order->payments as $payment)
                                     <div class="d-flex justify-content-between">
-                                        <span>{{ ucfirst($payment->method) }}</span>
+                                        <span>{{ ['cash' => 'Efectivo', 'card' => 'Tarjeta', 'transfer' => 'Transferencia', 'credit' => 'Crédito'][$payment->method] ?? ucfirst($payment->method) }}</span>
                                         <span>${{ number_format($payment->amount, 2) }}</span>
                                     </div>
                                     @endforeach
@@ -198,22 +206,50 @@
 </div>
 @endforeach
 
+<style>
+/* En pantallas pequeñas, primero se ve la lista de pedidos a ancho completo.
+   Al seleccionar uno, la lista se oculta y aparece el detalle (con el total),
+   con un botón para volver a la lista. En tablet/desktop no cambia nada. */
+@media (max-width: 767.98px) {
+    .order-modal-row .order-detail-col { display: none; }
+    .order-modal-row.mobile-show-detail .order-list-col { display: none; }
+    .order-modal-row.mobile-show-detail .order-detail-col { display: block; }
+}
+</style>
+
 <script>
 document.querySelectorAll('.order-list-item').forEach(function (btn) {
     btn.addEventListener('click', function () {
+        var row       = this.closest('.order-modal-row');
         var container = this.closest('.modal-body').querySelector('.order-detail-container');
         container.querySelectorAll('.order-detail-panel').forEach(function (p) { p.classList.add('d-none'); });
         var target = document.querySelector(this.dataset.target);
         if (target) target.classList.remove('d-none');
         this.closest('.list-group').querySelectorAll('.order-list-item').forEach(function (b) { b.classList.remove('active'); });
         this.classList.add('active');
+        if (row) row.classList.add('mobile-show-detail');
+    });
+});
+
+document.querySelectorAll('.order-list-toggle-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var row = this.closest('.order-modal-row');
+        if (row) row.classList.remove('mobile-show-detail');
+    });
+});
+
+// Al abrir cada modal de pedidos, arrancar siempre mostrando la lista (no el detalle) en móvil.
+document.querySelectorAll('[id^="ordersModal-"]').forEach(function (modal) {
+    modal.addEventListener('show.bs.modal', function () {
+        var row = modal.querySelector('.order-modal-row');
+        if (row) row.classList.remove('mobile-show-detail');
     });
 });
 </script>
 
-{{-- Resumen de caja: efectivo, tarjeta, transferencia, diferencias --}}
+{{-- Resumen de caja: efectivo, tarjeta, transferencia, crédito, diferencias --}}
 <div class="row mb-3">
-    <div class="col-md-4 mb-3 mb-md-0">
+    <div class="col-lg-4 col-md-6 mb-3">
         <div class="card shadow-sm h-100">
             <div class="card-header">Efectivo</div>
             <div class="card-body" style="font-size:.9rem">
@@ -230,7 +266,7 @@ document.querySelectorAll('.order-list-item').forEach(function (btn) {
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3 mb-md-0">
+    <div class="col-lg-4 col-md-6 mb-3">
         <div class="card shadow-sm h-100">
             <div class="card-header">Tarjeta</div>
             <div class="card-body" style="font-size:.9rem">
@@ -244,7 +280,7 @@ document.querySelectorAll('.order-list-item').forEach(function (btn) {
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-lg-4 col-md-6 mb-3">
         <div class="card shadow-sm h-100">
             <div class="card-header">Transferencia</div>
             <div class="card-body" style="font-size:.9rem">
@@ -259,6 +295,96 @@ document.querySelectorAll('.order-list-item').forEach(function (btn) {
         </div>
     </div>
 </div>
+
+{{-- Ventas a crédito --}}
+<div class="card shadow-sm mb-3">
+    <div class="card-header">Ventas a crédito</div>
+    <div class="card-body p-0">
+        @if($creditOrders->isEmpty())
+            <p class="text-center text-muted py-4 mb-0">No hay ventas a crédito en este corte.</p>
+        @else
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle" style="font-size:.9rem">
+                <thead>
+                    <tr>
+                        <th>Orden</th>
+                        <th>Cliente</th>
+                        <th class="text-end">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($creditOrders as $order)
+                    <tr role="button" data-bs-toggle="modal" data-bs-target="#creditOrderModal-{{ $order->id }}" style="cursor:pointer">
+                        <td>{{ $order->order_number }}</td>
+                        <td>{{ $order->customer?->name ?? $order->customer_name ?? '—' }}</td>
+                        <td class="text-end fw-bold">${{ number_format($order->total, 2) }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @endif
+    </div>
+</div>
+
+@foreach($creditOrders as $order)
+<div class="modal fade" id="creditOrderModal-{{ $order->id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background:var(--navy-deep)">
+                <h5 class="modal-title text-white">Orden {{ $order->order_number }} — Crédito</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h6 class="fw-bold mb-0">{{ $order->customer?->name ?? $order->customer_name ?? '—' }}</h6>
+                        @if($order->table_name)
+                        <small class="text-muted">Mesa {{ $order->table_name }}</small>
+                        @endif
+                    </div>
+                    <small class="text-muted">{{ $order->paid_at?->format('d/m/Y H:i') ?? '—' }}</small>
+                </div>
+                <div class="table-responsive mb-2">
+                    <table class="table table-sm mb-0" style="font-size:.85rem">
+                        <thead>
+                            <tr>
+                                <th>Platillo</th>
+                                <th class="text-end">Cant.</th>
+                                <th class="text-end">Precio</th>
+                                <th class="text-end">Importe</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($order->items as $item)
+                            <tr>
+                                <td>{{ $item->name_snapshot }}</td>
+                                <td class="text-end">{{ $item->quantity }}</td>
+                                <td class="text-end">${{ number_format($item->unit_price, 2) }}</td>
+                                <td class="text-end">${{ number_format($item->line_total, 2) }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div style="font-size:.85rem">
+                    <div class="d-flex justify-content-between"><span>Subtotal</span><span>${{ number_format($order->subtotal, 2) }}</span></div>
+                    @if($order->discount_code)
+                    <div class="d-flex justify-content-between text-danger">
+                        <span>Descuento ({{ $order->discount_code }}, {{ number_format($order->discount_percent, 2) }}%)</span>
+                        <span>-${{ number_format($order->discount_amount, 2) }}</span>
+                    </div>
+                    @endif
+                    <div class="d-flex justify-content-between"><span>Impuesto</span><span>${{ number_format($order->tax, 2) }}</span></div>
+                    <div class="d-flex justify-content-between"><span>Propina</span><span>${{ number_format($order->tip, 2) }}</span></div>
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between fw-bold"><span>Total</span><span>${{ number_format($order->total, 2) }}</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
 
 {{-- Movimientos manuales --}}
 <div class="card shadow-sm mb-3">

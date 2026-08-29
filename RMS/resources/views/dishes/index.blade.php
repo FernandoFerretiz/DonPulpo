@@ -6,76 +6,138 @@
     <a href="{{ route('dishes.create') }}" class="btn btn-dp">+ Nuevo platillo</a>
 </div>
 
-<form method="GET" action="{{ route('dishes.index') }}" class="mb-3">
+<div class="mb-3">
     <div class="input-group" style="max-width:380px;">
-        <input type="search" name="search" class="form-control" placeholder="Buscar platillo…"
+        <input type="search" id="dishSearchInput" class="form-control" placeholder="Buscar platillo…"
                value="{{ $search ?? '' }}" autocomplete="off">
-        <button class="btn btn-outline-secondary" type="submit">Buscar</button>
-        @if($search)
-            <a href="{{ route('dishes.index') }}" class="btn btn-outline-secondary">✕</a>
-        @endif
-    </div>
-</form>
-
-<div class="card shadow-sm border-0">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th style="width:64px"></th>
-                    <th>Nombre</th>
-                    <th>Categoría</th>
-                    <th>Precio</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($dishes as $dish)
-                <tr>
-                    <td>
-                        @if($dish->image_path)
-                            <img src="{{ asset('storage/' . $dish->image_path) }}" alt="{{ $dish->name }}"
-                                 style="width:52px;height:52px;object-fit:cover;border-radius:10px;border:1px solid #dee2e6;" />
-                        @else
-                            <div style="width:52px;height:52px;border-radius:10px;background:#f2f6f9;display:grid;place-items:center;font-size:22px;color:#adb5bd;">
-                                🍽️
-                            </div>
-                        @endif
-                    </td>
-                    <td>
-                        <div class="fw-semibold">{{ $dish->name }}</div>
-                        @if($dish->description)
-                            <small class="text-muted">{{ Str::limit($dish->description, 70) }}</small>
-                        @endif
-                    </td>
-                    <td>{{ $dish->category?->name ?? '—' }}</td>
-                    <td>${{ number_format($dish->price, 2) }}</td>
-                    <td>
-                        @php
-                            $badgeClass = match($dish->status) {
-                                'active' => 'badge-active',
-                                'temporarily_inactive' => 'badge-tmp',
-                                default => 'badge-inactive',
-                            };
-                        @endphp
-                        <span class="badge {{ $badgeClass }}">{{ $dish->getStatusLabel() }}</span>
-                    </td>
-                    <td>
-                        <a href="{{ route('dishes.edit', $dish) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
-                        <form action="{{ route('dishes.destroy', $dish) }}" method="POST" class="d-inline"
-                              onsubmit="return confirm('¿Eliminar este platillo?')">
-                            @csrf @method('DELETE')
-                            <button class="btn btn-sm btn-outline-danger">Eliminar</button>
-                        </form>
-                    </td>
-                </tr>
-                @empty
-                <tr><td colspan="6" class="text-center text-muted py-4">No hay platillos registrados.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+        <button class="btn btn-outline-secondary" type="button" id="dishSearchClear">✕</button>
     </div>
 </div>
-<div class="mt-3">{{ $dishes->links() }}</div>
+
+<div id="dishTableContainer">
+    @include('dishes._table')
+</div>
+
+{{-- ══════════════════════════════════════════
+     MODAL: Editar platillo
+═══════════════════════════════════════════ --}}
+<div class="modal fade" id="dishEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable" style="max-width:640px">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar platillo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="dishEditModalBody">
+                <div class="text-center text-muted py-4">Cargando…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const searchInput  = document.getElementById('dishSearchInput');
+    const clearBtn     = document.getElementById('dishSearchClear');
+    const tableWrap    = document.getElementById('dishTableContainer');
+    const modalEl      = document.getElementById('dishEditModal');
+    const modalBody    = document.getElementById('dishEditModalBody');
+    const indexUrl     = @json(route('dishes.index'));
+    // bootstrap.bundle.min.js se carga al final del layout, después de este bloque,
+    // así que la instancia del modal se crea al primer uso (no al cargar la página).
+    function getModal() { return bootstrap.Modal.getOrCreateInstance(modalEl); }
+    let debounceTimer  = null;
+
+    async function runSearch() {
+        const q   = searchInput.value.trim();
+        const url = indexUrl + '?partial=1' + (q ? '&search=' + encodeURIComponent(q) : '');
+        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        tableWrap.innerHTML = await res.text();
+    }
+
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(runSearch, 300);
+    });
+
+    clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        runSearch();
+    });
+
+    // Delegación de eventos: la tabla se reemplaza en cada búsqueda, así que los
+    // listeners se enganchan al contenedor fijo, no a los botones/links dentro de ella.
+    tableWrap.addEventListener('click', async e => {
+        const editBtn = e.target.closest('.js-edit-dish');
+        if (!editBtn) return;
+        await openEditModal(editBtn.dataset.id);
+    });
+
+    // Paginación: interceptar los links del paginador para que también
+    // carguen sin recargar la página completa.
+    tableWrap.addEventListener('click', async e => {
+        const link = e.target.closest('.pagination a');
+        if (!link) return;
+        e.preventDefault();
+        const res = await fetch(link.href + (link.href.includes('?') ? '&' : '?') + 'partial=1', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        tableWrap.innerHTML = await res.text();
+    });
+
+    async function openEditModal(id) {
+        modalBody.innerHTML = '<div class="text-center text-muted py-4">Cargando…</div>';
+        getModal().show();
+        try {
+            const res = await fetch(`/dishes/${id}/edit?modal=1`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            modalBody.innerHTML = await res.text();
+            bindEditForm();
+        } catch {
+            modalBody.innerHTML = '<div class="alert alert-danger mb-0">No se pudo cargar el platillo.</div>';
+        }
+    }
+
+    function bindEditForm() {
+        const form = document.getElementById('dishEditForm');
+        if (!form) return;
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            const btn = form.querySelector('button[type=submit]');
+            const originalText = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Guardando...';
+
+            try {
+                const res = await fetch(form.action, {
+                    method: 'POST', // el @method('PUT') en el form hace el spoofing
+                    body: new FormData(form),
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const json = await res.json();
+
+                if (res.ok && json.success) {
+                    getModal().hide();
+                    await runSearch();
+                } else if (res.status === 422) {
+                    showFormErrors(json.errors || {});
+                } else {
+                    showFormErrors({}, json.message || 'Ocurrió un error al guardar.');
+                }
+            } catch {
+                showFormErrors({}, 'Error de conexión.');
+            } finally {
+                btn.disabled = false; btn.textContent = originalText;
+            }
+        });
+    }
+
+    function showFormErrors(errors, genericMessage) {
+        const box = document.getElementById('dishFormErrors');
+        if (!box) return;
+        const messages = genericMessage ? [genericMessage] : Object.values(errors).flat();
+        box.innerHTML = messages.length
+            ? `<div class="alert alert-danger"><ul class="mb-0">${messages.map(m => `<li>${m}</li>`).join('')}</ul></div>`
+            : '';
+    }
+})();
+</script>
 @endsection

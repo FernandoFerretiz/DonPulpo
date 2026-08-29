@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Dish;
 use App\Models\DishCategory;
+use App\Models\ModifierGroup;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -20,14 +22,20 @@ class DishController extends Controller
             ->orderBy('name')
             ->paginate(25)
             ->withQueryString();
+
+        if ($request->boolean('partial')) {
+            return view('dishes._table', compact('dishes', 'search'));
+        }
+
         return view('dishes.index', compact('dishes', 'search'));
     }
 
     public function create(): View
     {
         return view('dishes.create', [
-            'categories' => DishCategory::orderBy('display_order')->get(),
-            'statuses'   => Dish::STATUSES,
+            'categories'     => DishCategory::orderBy('display_order')->get(),
+            'statuses'       => Dish::STATUSES,
+            'modifierGroups' => ModifierGroup::with('options')->orderBy('name')->get(),
         ]);
     }
 
@@ -40,6 +48,10 @@ class DishController extends Controller
             'image'            => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
             'price'            => 'required|numeric|min:0',
             'status'           => ['required', Rule::in(Dish::STATUSES)],
+            'modifier_group_ids'   => 'nullable|array',
+            'modifier_group_ids.*' => 'integer|exists:modifier_groups,id',
+            'modifier_prices'      => 'nullable|array',
+            'modifier_prices.*'    => 'nullable|numeric',
         ]);
 
         if ($request->hasFile('image')) {
@@ -47,22 +59,35 @@ class DishController extends Controller
             $this->syncImageToPos($validated['image_path']);
         }
         unset($validated['image']);
+        $modifierGroupIds = $validated['modifier_group_ids'] ?? [];
+        $modifierPrices   = $validated['modifier_prices'] ?? [];
+        unset($validated['modifier_group_ids'], $validated['modifier_prices']);
 
-        Dish::create($validated);
+        $dish = Dish::create($validated);
+        $this->syncModifiers($dish, $modifierGroupIds, $modifierPrices);
 
         return redirect()->route('dishes.index')->with('success', 'Platillo creado correctamente.');
     }
 
-    public function edit(Dish $dish): View
+    public function edit(Request $request, Dish $dish): View
     {
-        return view('dishes.edit', [
-            'dish'       => $dish,
-            'categories' => DishCategory::orderBy('display_order')->get(),
-            'statuses'   => Dish::STATUSES,
-        ]);
+        $data = [
+            'dish'           => $dish,
+            'categories'     => DishCategory::orderBy('display_order')->get(),
+            'statuses'       => Dish::STATUSES,
+            'modifierGroups' => ModifierGroup::with('options')->orderBy('name')->get(),
+            'selectedGroupIds' => $dish->modifierGroups()->pluck('modifier_groups.id')->all(),
+            'optionPrices'   => $dish->modifierOptions()->pluck('dish_modifier_options.price_delta', 'modifier_options.id'),
+        ];
+
+        if ($request->boolean('modal')) {
+            return view('dishes._form', $data);
+        }
+
+        return view('dishes.edit', $data);
     }
 
-    public function update(Request $request, Dish $dish): RedirectResponse
+    public function update(Request $request, Dish $dish): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'dish_category_id' => 'nullable|exists:dish_categories,id',
@@ -72,6 +97,10 @@ class DishController extends Controller
             'remove_image'     => 'nullable|in:1',
             'price'            => 'required|numeric|min:0',
             'status'           => ['required', Rule::in(Dish::STATUSES)],
+            'modifier_group_ids'   => 'nullable|array',
+            'modifier_group_ids.*' => 'integer|exists:modifier_groups,id',
+            'modifier_prices'      => 'nullable|array',
+            'modifier_prices.*'    => 'nullable|numeric',
         ]);
 
         if ($request->hasFile('image')) {
@@ -90,7 +119,16 @@ class DishController extends Controller
         }
 
         unset($validated['image'], $validated['remove_image']);
+        $modifierGroupIds = $validated['modifier_group_ids'] ?? [];
+        $modifierPrices   = $validated['modifier_prices'] ?? [];
+        unset($validated['modifier_group_ids'], $validated['modifier_prices']);
+
         $dish->update($validated);
+        $this->syncModifiers($dish, $modifierGroupIds, $modifierPrices);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Platillo actualizado correctamente.']);
+        }
 
         return redirect()->route('dishes.index')->with('success', 'Platillo actualizado correctamente.');
     }
@@ -103,6 +141,23 @@ class DishController extends Controller
         }
         $dish->delete();
         return redirect()->route('dishes.index')->with('success', 'Platillo eliminado correctamente.');
+    }
+
+    /**
+     * Enables the given modifier groups on the dish and sets the price of each of
+     * their options for this specific dish (same group can have a different price
+     * per dish, e.g. "Tamaño MED" costs different on each caldo).
+     */
+    private function syncModifiers(Dish $dish, array $modifierGroupIds, array $modifierPrices): void
+    {
+        $dish->modifierGroups()->sync($modifierGroupIds);
+
+        $optionIds = \App\Models\ModifierOption::whereIn('modifier_group_id', $modifierGroupIds)->pluck('id');
+        $syncData  = $optionIds->mapWithKeys(fn($id) => [
+            $id => ['price_delta' => $modifierPrices[$id] ?? 0],
+        ])->all();
+
+        $dish->modifierOptions()->sync($syncData);
     }
 
     /**

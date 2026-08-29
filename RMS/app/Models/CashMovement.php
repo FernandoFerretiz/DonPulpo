@@ -18,6 +18,7 @@ class CashMovement extends Model
     const TYPE_VENTA_EFECTIVO      = 'VENTA_EFECTIVO';
     const TYPE_VENTA_TARJETA       = 'VENTA_TARJETA';
     const TYPE_VENTA_TRANSFERENCIA = 'VENTA_TRANSFERENCIA';
+    const TYPE_VENTA_CREDITO       = 'VENTA_CREDITO';
     const TYPE_INGRESO_MANUAL      = 'INGRESO_MANUAL';
     const TYPE_RETIRO_EFECTIVO     = 'RETIRO_EFECTIVO';
     const TYPE_VALE_CAJA_CHICA     = 'VALE_CAJA_CHICA';
@@ -38,6 +39,7 @@ class CashMovement extends Model
     const REPORTING_TYPES = [
         self::TYPE_VENTA_TARJETA,
         self::TYPE_VENTA_TRANSFERENCIA,
+        self::TYPE_VENTA_CREDITO,
     ];
 
     const MANUAL_TYPES = [
@@ -68,6 +70,7 @@ class CashMovement extends Model
             self::TYPE_VENTA_EFECTIVO      => 'Venta efectivo',
             self::TYPE_VENTA_TARJETA       => 'Venta tarjeta',
             self::TYPE_VENTA_TRANSFERENCIA => 'Venta transferencia',
+            self::TYPE_VENTA_CREDITO       => 'Venta a crédito',
             self::TYPE_INGRESO_MANUAL      => 'Ingreso manual',
             self::TYPE_RETIRO_EFECTIVO     => 'Retiro',
             self::TYPE_VALE_CAJA_CHICA     => 'Vale caja chica',

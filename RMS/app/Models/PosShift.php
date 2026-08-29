@@ -80,6 +80,11 @@ class PosShift extends Model
         return $this->sumByType(CashMovement::TYPE_VENTA_TRANSFERENCIA);
     }
 
+    public function creditSales(): float
+    {
+        return $this->sumByType(CashMovement::TYPE_VENTA_CREDITO);
+    }
+
     public function manualMovements()
     {
         return $this->cashMovements->whereIn('type', CashMovement::MANUAL_TYPES);
@@ -115,16 +120,42 @@ class PosShift extends Model
     }
 
     /**
-     * Pedidos con descuento aplicado, pagados durante este corte.
+     * Pedidos que incluyeron al menos un pago a crédito. Se muestran aparte
+     * porque no representan efectivo/tarjeta/transferencia recibido en caja.
+     */
+    public function creditOrders()
+    {
+        return $this->cashMovements
+            ->where('type', CashMovement::TYPE_VENTA_CREDITO)
+            ->pluck('reference')
+            ->filter(fn ($ref) => $ref instanceof PosPayment)
+            ->pluck('order')
+            ->filter()
+            ->unique('id');
+    }
+
+    /**
+     * Pedidos del corte que NO se pagaron (ni parcialmente) a crédito.
+     * Es la base para el desglose por tipo de orden y el total de ventas.
+     */
+    public function nonCreditOrders()
+    {
+        $creditIds = $this->creditOrders()->pluck('id');
+
+        return $this->orders()->reject(fn ($order) => $creditIds->contains($order->id));
+    }
+
+    /**
+     * Pedidos con descuento aplicado, pagados durante este corte (sin incluir crédito).
      */
     public function discountedOrders()
     {
-        return $this->orders()->filter(fn ($order) => !empty($order->discount_code));
+        return $this->nonCreditOrders()->filter(fn ($order) => !empty($order->discount_code));
     }
 
     public function ordersGroupedByType(): array
     {
-        $grouped = $this->orders()->groupBy('order_type');
+        $grouped = $this->nonCreditOrders()->groupBy('order_type');
 
         return collect(['dine_in', 'takeout', 'delivery'])
             ->mapWithKeys(fn ($type) => [$type => $grouped->get($type, collect())->values()])

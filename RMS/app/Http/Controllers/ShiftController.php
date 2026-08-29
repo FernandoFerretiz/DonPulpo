@@ -40,7 +40,7 @@ class ShiftController extends Controller
             // "reference" es polimórfico (PosPayment o PettyCashVoucher); solo PosPayment
             // tiene relación "order", así que se declara el eager load por tipo con morphWith.
             'cashMovements.reference' => fn (MorphTo $morphTo) => $morphTo->morphWith([
-                PosPayment::class => ['order.items', 'order.payments'],
+                PosPayment::class => ['order.items', 'order.payments', 'order.customer'],
             ]),
             'pettyCashVouchers.category',
             'pettyCashVouchers.requestedBy',

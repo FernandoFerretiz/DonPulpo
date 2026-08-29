@@ -59,10 +59,16 @@
                     <a class="nav-link {{ request()->routeIs('dishes*') ? 'active' : '' }}" href="{{ route('dishes.index') }}">Platillos</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('modifier-groups*') ? 'active' : '' }}" href="{{ route('modifier-groups.index') }}">Modificadores</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('shifts*') ? 'active' : '' }}" href="{{ route('shifts.index') }}">Cortes de caja</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('discount-codes*') ? 'active' : '' }}" href="{{ route('discount-codes.index') }}">Descuentos</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('customers*') ? 'active' : '' }}" href="{{ route('customers.index') }}">Clientes</a>
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle {{ request()->routeIs('petty-cash*') ? 'active' : '' }}"

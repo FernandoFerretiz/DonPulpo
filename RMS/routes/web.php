@@ -2,12 +2,14 @@
 
 use App\Http\Controllers\AdjustmentController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DiscountCodeController;
 use App\Http\Controllers\DishCategoryController;
 use App\Http\Controllers\DishController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InventoryCategoryController;
 use App\Http\Controllers\InventoryProductController;
+use App\Http\Controllers\ModifierGroupController;
 use App\Http\Controllers\PettyCashCategoryController;
 use App\Http\Controllers\PettyCashVoucherController;
 use App\Http\Controllers\PhysicalCountController;
@@ -33,7 +35,12 @@ Route::middleware('auth.rms')->group(function () {
     Route::resource('users',           UserController::class)->except(['show']);
     Route::resource('dish-categories', DishCategoryController::class)->except(['show']);
     Route::resource('dishes',          DishController::class)->except(['show']);
+    Route::resource('modifier-groups', ModifierGroupController::class)->except(['show']);
     Route::resource('discount-codes',  DiscountCodeController::class)->except(['show']);
+
+    // Clientes (saldo de crédito usado por el POS)
+    Route::resource('customers', CustomerController::class)->except(['show']);
+    Route::patch('customers/{customer}/payment', [CustomerController::class, 'registerPayment'])->name('customers.payment');
 
     // Cortes de caja
     Route::resource('shifts', ShiftController::class)->only(['index', 'show']);
