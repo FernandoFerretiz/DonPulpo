@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdjustmentController;
+use App\Http\Controllers\ApkReleaseController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DiscountCodeController;
@@ -37,6 +38,14 @@ Route::middleware('auth.rms')->group(function () {
     Route::resource('dishes',          DishController::class)->except(['show']);
     Route::resource('modifier-groups', ModifierGroupController::class)->except(['show']);
     Route::resource('discount-codes',  DiscountCodeController::class)->except(['show']);
+
+    // APK del POS (subir versiones, descargar para instalar en tablets)
+    Route::prefix('apk-releases')->name('apk-releases.')->group(function () {
+        Route::get('/',                     [ApkReleaseController::class, 'index'])->name('index');
+        Route::post('/',                    [ApkReleaseController::class, 'store'])->name('store');
+        Route::get('/{apkRelease}/download', [ApkReleaseController::class, 'download'])->name('download');
+        Route::delete('/{apkRelease}',       [ApkReleaseController::class, 'destroy'])->name('destroy');
+    });
 
     // Clientes (saldo de crédito usado por el POS)
     Route::resource('customers', CustomerController::class)->except(['show']);

@@ -32,6 +32,17 @@
                 <label class="form-label fw-semibold">Confirmar contraseña</label>
                 <input type="password" name="password_confirmation" class="form-control" minlength="8" />
             </div>
+            <hr class="my-4" />
+            <p class="text-muted small mb-3">Acceso al POS (app de mesero/cajero)</p>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Número de empleado</label>
+                <input type="text" name="employee_number" class="form-control" value="{{ old('employee_number', $user->employee_number) }}" placeholder="Ej. 1042" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Nuevo PIN del POS <small class="text-muted">(4 dígitos — dejar vacío para no cambiar)</small></label>
+                <input type="password" name="pin" class="form-control" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="••••" />
+            </div>
+            <hr class="my-4" />
             <div class="mb-3">
                 <label class="form-label fw-semibold">Rol</label>
                 <select name="role" class="form-select" required>

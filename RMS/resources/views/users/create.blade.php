@@ -25,13 +25,24 @@
                 <input type="email" name="email" class="form-control" value="{{ old('email') }}" required />
             </div>
             <div class="mb-3">
-                <label class="form-label fw-semibold">Contraseña</label>
-                <input type="password" name="password" class="form-control" required minlength="8" />
+                <label class="form-label fw-semibold">Contraseña <span class="text-muted fw-normal">(opcional — dejar en blanco si el empleado no debe entrar al RMS, solo al POS)</span></label>
+                <input type="password" name="password" class="form-control" minlength="8" />
             </div>
             <div class="mb-3">
                 <label class="form-label fw-semibold">Confirmar contraseña</label>
-                <input type="password" name="password_confirmation" class="form-control" required minlength="8" />
+                <input type="password" name="password_confirmation" class="form-control" minlength="8" />
             </div>
+            <hr class="my-4" />
+            <p class="text-muted small mb-3">Acceso al POS (app de mesero/cajero)</p>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Número de empleado</label>
+                <input type="text" name="employee_number" class="form-control" value="{{ old('employee_number') }}" placeholder="Ej. 1042" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">PIN del POS <span class="text-muted fw-normal">(4 dígitos)</span></label>
+                <input type="password" name="pin" class="form-control" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="••••" />
+            </div>
+            <hr class="my-4" />
             <div class="mb-3">
                 <label class="form-label fw-semibold">Rol</label>
                 <select name="role" class="form-select" required>

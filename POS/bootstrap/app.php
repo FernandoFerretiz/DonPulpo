@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.pos' => \App\Http\Middleware\AuthenticatePOS::class,
         ]);
+
+        // Permite que las mismas rutas de api/v1 acepten tanto la sesión-cookie
+        // del navegador (POS web actual) como un token Sanctum (app nativa Flutter).
+        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

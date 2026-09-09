@@ -1,11 +1,14 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DiscountCodeController;
 use App\Http\Controllers\Api\V1\DishCategoryController;
 use App\Http\Controllers\Api\V1\DishController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\PettyCashController;
+use App\Http\Controllers\Api\V1\ShiftController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
@@ -13,6 +16,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login']);
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::post('auth/logout', [AuthController::class, 'logout']);
+
+    // Auth por PIN + token Sanctum, para la app nativa (Flutter)
+    Route::post('auth/pin-login', [AuthController::class, 'pinLogin']);
 
     // Menú (lectura pública dentro del contexto POS)
     Route::get('dish-categories', [DishCategoryController::class, 'index']);
@@ -36,4 +42,36 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     // Dashboard
     Route::get('dashboard/summary', [DashboardController::class, 'summary']);
+
+    // Rutas autenticadas por token Sanctum, para la app nativa (Flutter).
+    // Duplican (bajo el mismo prefijo api/v1) rutas que hoy solo viven en web.php
+    // protegidas por sesión — se agregan acá sin tocar web.php para no afectar
+    // el flujo web actual, y de paso se registran los controllers que ya
+    // existían pero no tenían ruta (Customer/Shift/PettyCash).
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('auth/pin-verify', [AuthController::class, 'pinVerify']);
+        Route::post('auth/token-logout', [AuthController::class, 'tokenLogout']);
+
+        // Cobrar una orden (registra movimiento de caja → requiere user_id real)
+        Route::post('orders/{id}/pay', [OrderController::class, 'pay']);
+
+        // Ticket de venta en PDF / comanda de cocina
+        Route::get('orders/{id}/ticket', [OrderController::class, 'ticket']);
+        Route::get('orders/{id}/comanda', [OrderController::class, 'comanda']);
+
+        // Clientes (para pagos a crédito)
+        Route::get('customers', [CustomerController::class, 'index']);
+        Route::post('customers', [CustomerController::class, 'store']);
+
+        // Turnos
+        Route::get('shifts/active', [ShiftController::class, 'active']);
+        Route::post('shifts', [ShiftController::class, 'open']);
+        Route::post('shifts/{id}/close', [ShiftController::class, 'close']);
+        Route::get('shifts/{id}/summary', [ShiftController::class, 'summary']);
+        Route::post('shifts/{id}/movements', [ShiftController::class, 'addMovement']);
+
+        // Vales de caja chica
+        Route::get('petty-cash/vouchers', [PettyCashController::class, 'authorizedVouchers']);
+        Route::post('petty-cash/vouchers/{id}/pay', [PettyCashController::class, 'pay']);
+    });
 });

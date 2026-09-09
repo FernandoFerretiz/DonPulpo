@@ -70,6 +70,9 @@
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('customers*') ? 'active' : '' }}" href="{{ route('customers.index') }}">Clientes</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('apk-releases*') ? 'active' : '' }}" href="{{ route('apk-releases.index') }}">APK POS</a>
+                </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle {{ request()->routeIs('petty-cash*') ? 'active' : '' }}"
                        href="#" role="button" data-bs-toggle="dropdown">
