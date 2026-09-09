@@ -60,14 +60,43 @@ class ApkReleaseController extends Controller
         return redirect()->route('apk-releases.index')->with('success', 'APK subido correctamente.');
     }
 
-    public function download(ApkRelease $apkRelease): StreamedResponse
+    /**
+     * Alternativa a subir el archivo: registrar una versión que solo apunta a un
+     * link externo (Drive, S3, etc.), para cuando la subida directa falla.
+     */
+    public function storeLink(Request $request): RedirectResponse
     {
+        $validated = $request->validate([
+            'version'      => 'required|string|max:50',
+            'notes'        => 'nullable|string',
+            'external_url' => 'required|url|max:2048',
+        ]);
+
+        ApkRelease::create([
+            'version'       => $validated['version'],
+            'notes'         => $validated['notes'] ?? null,
+            'original_name' => 'app-cobro-release.apk',
+            'external_url'  => $validated['external_url'],
+            'uploaded_by'   => Auth::id(),
+        ]);
+
+        return redirect()->route('apk-releases.index')->with('success', 'Versión registrada con link externo.');
+    }
+
+    public function download(ApkRelease $apkRelease): StreamedResponse|RedirectResponse
+    {
+        if ($apkRelease->isExternal()) {
+            return redirect()->away($apkRelease->external_url);
+        }
+
         return Storage::disk('public')->download($apkRelease->file_path, $apkRelease->original_name);
     }
 
     public function destroy(ApkRelease $apkRelease): RedirectResponse
     {
-        Storage::disk('public')->delete($apkRelease->file_path);
+        if (! $apkRelease->isExternal()) {
+            Storage::disk('public')->delete($apkRelease->file_path);
+        }
         $apkRelease->delete();
 
         return redirect()->route('apk-releases.index')->with('success', 'APK eliminado correctamente.');

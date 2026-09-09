@@ -38,6 +38,31 @@
     </div>
 </div>
 
+<div class="card shadow-sm border-0 mb-4" style="max-width:560px">
+    <div class="card-header">Registrar con link externo</div>
+    <div class="card-body">
+        <p class="text-muted small">Si la subida directa falla (archivo muy grande o conexión lenta), subí el APK a Drive, S3, etc. y pegá acá el link de descarga directa.</p>
+        <form action="{{ route('apk-releases.store-link') }}" method="POST">
+            @csrf
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Versión</label>
+                <input type="text" name="version" class="form-control" value="{{ old('version') }}"
+                       placeholder="Ej: 1.0.0" required maxlength="50" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Link de descarga</label>
+                <input type="url" name="external_url" class="form-control" value="{{ old('external_url') }}"
+                       placeholder="https://..." required maxlength="2048" />
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Notas (opcional)</label>
+                <textarea name="notes" class="form-control" rows="2">{{ old('notes') }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-dp-outline w-100">Registrar link</button>
+        </form>
+    </div>
+</div>
+
 <div class="card shadow-sm border-0">
     <div class="table-responsive">
         <table class="table table-hover mb-0">
@@ -58,7 +83,12 @@
                 <tr>
                     <td>{{ $release->id }}</td>
                     <td><code>{{ $release->version }}</code></td>
-                    <td>{{ $release->original_name }}</td>
+                    <td>
+                        {{ $release->original_name }}
+                        @if($release->isExternal())
+                            <span class="badge bg-secondary">link externo</span>
+                        @endif
+                    </td>
                     <td>{{ $release->formattedSize() }}</td>
                     <td>{{ $release->notes }}</td>
                     <td>{{ $release->uploader?->name ?? '—' }}</td>

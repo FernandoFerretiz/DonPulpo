@@ -47,6 +47,7 @@ Route::middleware('auth.rms')->group(function () {
     Route::prefix('apk-releases')->name('apk-releases.')->group(function () {
         Route::get('/',                     [ApkReleaseController::class, 'index'])->name('index');
         Route::post('/',                    [ApkReleaseController::class, 'store'])->name('store');
+        Route::post('/link',                [ApkReleaseController::class, 'storeLink'])->name('store-link');
         Route::get('/{apkRelease}/download', [ApkReleaseController::class, 'download'])->name('download');
         Route::delete('/{apkRelease}',       [ApkReleaseController::class, 'destroy'])->name('destroy');
     });
