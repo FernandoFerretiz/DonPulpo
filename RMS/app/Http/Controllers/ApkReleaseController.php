@@ -23,6 +23,12 @@ class ApkReleaseController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        // El APK puede tardar en subir en conexiones lentas: se amplía el
+        // límite de tiempo y memoria solo para esta acción.
+        ini_set('max_execution_time', '300');
+        ini_set('memory_limit', '256M');
+        set_time_limit(300);
+
         $validated = $request->validate([
             'version' => 'required|string|max:50',
             'notes'   => 'nullable|string',
