@@ -6,7 +6,7 @@ use App\Models\Dish;
 use App\Models\ModifierOption;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
-use Illuminate\Support\Str;
+use App\Models\PosOrderNumberSetting;
 
 class OrderService
 {
@@ -228,7 +228,7 @@ class OrderService
 
     private function generateOrderNumber(): string
     {
-        return 'ORD-' . strtoupper(Str::random(8));
+        return PosOrderNumberSetting::generateOrderNumber();
     }
 
     private function itemSignature(?int $dishId, ?string $nameSnapshot, ?string $notes): string

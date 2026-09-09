@@ -11,6 +11,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InventoryCategoryController;
 use App\Http\Controllers\InventoryProductController;
 use App\Http\Controllers\ModifierGroupController;
+use App\Http\Controllers\OrderNumberSettingController;
 use App\Http\Controllers\PettyCashCategoryController;
 use App\Http\Controllers\PettyCashVoucherController;
 use App\Http\Controllers\PhysicalCountController;
@@ -38,6 +39,9 @@ Route::middleware('auth.rms')->group(function () {
     Route::resource('dishes',          DishController::class)->except(['show']);
     Route::resource('modifier-groups', ModifierGroupController::class)->except(['show']);
     Route::resource('discount-codes',  DiscountCodeController::class)->except(['show']);
+
+    Route::get('order-number-settings',  [OrderNumberSettingController::class, 'edit'])->name('order-number-settings.edit');
+    Route::put('order-number-settings',  [OrderNumberSettingController::class, 'update'])->name('order-number-settings.update');
 
     // APK del POS (subir versiones, descargar para instalar en tablets)
     Route::prefix('apk-releases')->name('apk-releases.')->group(function () {
