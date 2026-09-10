@@ -6,9 +6,11 @@ use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DiscountCodeController;
 use App\Http\Controllers\Api\V1\DishCategoryController;
 use App\Http\Controllers\Api\V1\DishController;
+use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PettyCashController;
 use App\Http\Controllers\Api\V1\ShiftController;
+use App\Http\Controllers\Api\V1\TableController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
@@ -33,7 +35,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('orders/active-count', [OrderController::class, 'activeCount']);
     Route::get('orders/{id}', [OrderController::class, 'show']);
     Route::put('orders/{id}', [OrderController::class, 'update']);
-    Route::delete('orders/{id}', [OrderController::class, 'destroy']);
 
     // Ítems de una orden
     Route::post('orders/{id}/items', [OrderController::class, 'addItem']);
@@ -55,6 +56,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // Cobrar una orden (registra movimiento de caja → requiere user_id real)
         Route::post('orders/{id}/pay', [OrderController::class, 'pay']);
 
+        // Eliminar orden: solo admin (verificado en el controlador vía Auth::user())
+        Route::delete('orders/{id}', [OrderController::class, 'destroy']);
+
         // Ticket de venta en PDF / comanda de cocina
         Route::get('orders/{id}/ticket', [OrderController::class, 'ticket']);
         Route::get('orders/{id}/comanda', [OrderController::class, 'comanda']);
@@ -73,5 +77,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // Vales de caja chica
         Route::get('petty-cash/vouchers', [PettyCashController::class, 'authorizedVouchers']);
         Route::post('petty-cash/vouchers/{id}/pay', [PettyCashController::class, 'pay']);
+
+        // Gastos: independientes del turno de caja (no requieren turno abierto)
+        Route::get('expenses', [ExpenseController::class, 'index']);
+        Route::post('expenses', [ExpenseController::class, 'store']);
+
+        // Catálogo de mesas (se administra desde RMS)
+        Route::get('tables', [TableController::class, 'index']);
     });
 });

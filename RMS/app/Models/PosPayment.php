@@ -9,7 +9,16 @@ class PosPayment extends Model
 {
     protected $table = 'pos_payments';
 
-    protected $fillable = [];  // read-only from RMS
+    // Escribible: RMS ahora también opera el POS (app de cobro), no solo lo reporta.
+    protected $fillable = [
+        'pos_order_id',
+        'user_id',
+        'method',
+        'amount',
+        'change_amount',
+        'status',
+        'paid_at',
+    ];
 
     protected function casts(): array
     {

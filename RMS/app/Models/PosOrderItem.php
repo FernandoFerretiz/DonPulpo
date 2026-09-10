@@ -4,19 +4,31 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PosOrderItem extends Model
 {
     protected $table = 'pos_order_items';
 
-    protected $fillable = [];  // read-only from RMS
+    // Escribible: RMS ahora también opera el POS (app de cobro), no solo lo reporta.
+    protected $fillable = [
+        'pos_order_id',
+        'dish_id',
+        'name_snapshot',
+        'unit_price',
+        'quantity',
+        'sent_to_kitchen_qty',
+        'line_total',
+        'notes',
+    ];
 
     protected function casts(): array
     {
         return [
-            'unit_price' => 'decimal:2',
-            'line_total' => 'decimal:2',
-            'quantity'   => 'integer',
+            'unit_price'          => 'decimal:2',
+            'line_total'          => 'decimal:2',
+            'quantity'            => 'integer',
+            'sent_to_kitchen_qty' => 'integer',
         ];
     }
 
@@ -28,5 +40,10 @@ class PosOrderItem extends Model
     public function dish(): BelongsTo
     {
         return $this->belongsTo(Dish::class);
+    }
+
+    public function modifiers(): HasMany
+    {
+        return $this->hasMany(PosOrderItemModifier::class);
     }
 }

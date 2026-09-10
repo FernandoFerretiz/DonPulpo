@@ -8,7 +8,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PosShift extends Model
 {
-    protected $fillable = [];  // read-only from RMS
+    // Escribible: RMS ahora también opera el POS (app de cobro), no solo lo reporta.
+    protected $fillable = [
+        'user_id', 'terminal_id', 'status',
+        'opening_cash', 'expected_cash',
+        'counted_cash', 'counted_card', 'counted_transfer',
+        'difference',
+        'opened_at', 'closed_at', 'notes',
+    ];
 
     protected $casts = [
         'opening_cash'     => 'decimal:2',

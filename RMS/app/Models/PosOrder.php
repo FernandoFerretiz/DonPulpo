@@ -10,7 +10,28 @@ class PosOrder extends Model
 {
     protected $table = 'pos_orders';
 
-    protected $fillable = [];  // read-only from RMS
+    // Escribible: RMS ahora también opera el POS (app de cobro), no solo lo reporta.
+    protected $fillable = [
+        'order_number',
+        'user_id',
+        'customer_name',
+        'customer_id',
+        'table_name',
+        'order_type',
+        'subtotal',
+        'tax',
+        'tip',
+        'discount_code',
+        'discount_percent',
+        'discount_amount',
+        'total',
+        'status',
+        'notes',
+        'paid_at',
+        'cancelled_by',
+        'cancelled_at',
+        'cancel_reason',
+    ];
 
     protected function casts(): array
     {
@@ -22,6 +43,7 @@ class PosOrder extends Model
             'discount_percent'  => 'decimal:2',
             'discount_amount'   => 'decimal:2',
             'paid_at'           => 'datetime',
+            'cancelled_at'      => 'datetime',
         ];
     }
 
@@ -38,6 +60,11 @@ class PosOrder extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
     public function customer(): BelongsTo

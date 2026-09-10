@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use Notifiable;
+    use HasApiTokens, Notifiable;
 
     protected $fillable = [
         'name',
@@ -36,6 +37,8 @@ class User extends Authenticatable
 
     public const ROLES = ['admin', 'manager', 'cashier', 'waiter', 'kitchen'];
     public const STATUSES = ['active', 'inactive'];
+    // Roles con acceso a la app de cobro (Flutter); ver Api\V1\Cobro\AuthController::pinLogin.
+    public const POS_ROLES = ['admin', 'manager', 'cashier', 'waiter'];
 
     public function getRoleLabel(): string
     {

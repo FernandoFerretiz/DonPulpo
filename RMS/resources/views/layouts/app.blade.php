@@ -71,6 +71,9 @@
                     <a class="nav-link {{ request()->routeIs('order-number-settings*') ? 'active' : '' }}" href="{{ route('order-number-settings.edit') }}">Numeración</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('tables*') ? 'active' : '' }}" href="{{ route('tables.index') }}">Mesas</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('customers*') ? 'active' : '' }}" href="{{ route('customers.index') }}">Clientes</a>
                 </li>
                 <li class="nav-item">

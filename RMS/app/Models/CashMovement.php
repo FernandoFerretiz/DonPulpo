@@ -8,7 +8,11 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class CashMovement extends Model
 {
-    protected $fillable = [];  // read-only from RMS
+    // Escribible: RMS ahora también opera el POS (app de cobro), no solo lo reporta.
+    protected $fillable = [
+        'pos_shift_id', 'user_id', 'type', 'amount',
+        'payment_method', 'description', 'reference_type', 'reference_id',
+    ];
 
     protected $casts = [
         'amount' => 'decimal:2',

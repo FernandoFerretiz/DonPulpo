@@ -15,6 +15,7 @@ use App\Http\Controllers\OrderNumberSettingController;
 use App\Http\Controllers\PettyCashCategoryController;
 use App\Http\Controllers\PettyCashVoucherController;
 use App\Http\Controllers\PhysicalCountController;
+use App\Http\Controllers\PosTableController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ShrinkageController;
@@ -39,6 +40,7 @@ Route::middleware('auth.rms')->group(function () {
     Route::resource('dishes',          DishController::class)->except(['show']);
     Route::resource('modifier-groups', ModifierGroupController::class)->except(['show']);
     Route::resource('discount-codes',  DiscountCodeController::class)->except(['show']);
+    Route::resource('tables',          PosTableController::class)->except(['show']);
 
     Route::get('order-number-settings',  [OrderNumberSettingController::class, 'edit'])->name('order-number-settings.edit');
     Route::put('order-number-settings',  [OrderNumberSettingController::class, 'update'])->name('order-number-settings.update');
