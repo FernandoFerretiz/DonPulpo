@@ -11,8 +11,10 @@ use Illuminate\Support\Facades\DB;
 class PaymentService
 {
     /**
-     * Register one or more payments for an order.
-     * The sum of all payment amounts must be >= order total.
+     * Register one or more payments for an order. Supports partial payments
+     * (cuentas divididas): the order stays 'open' while there is a remaining
+     * balance, and only flips to 'paid' once accumulated payments (this call
+     * plus any earlier ones) cover the order total.
      */
     public function payMultiple(PosOrder $order, array $payments, int $userId, ?int $customerId = null): array
     {
@@ -23,11 +25,13 @@ class PaymentService
             throw new \RuntimeException('La orden ya fue pagada.');
         }
 
-        $orderTotal = (float) $order->total;
-        $totalPaid  = collect($payments)->sum(fn($p) => (float) ($p['amount'] ?? 0));
+        $orderTotal  = (float) $order->total;
+        $alreadyPaid = (float) $order->payments()->sum('amount');
+        $remaining   = round($orderTotal - $alreadyPaid, 2);
+        $totalPaid   = collect($payments)->sum(fn($p) => (float) ($p['amount'] ?? 0));
 
-        if ($totalPaid < $orderTotal) {
-            $diff = number_format($orderTotal - $totalPaid, 2);
+        if ($totalPaid < $remaining - 0.005) {
+            $diff = number_format($remaining - $totalPaid, 2);
             throw new \RuntimeException("Faltan \${$diff} para completar el pago.");
         }
 
@@ -39,8 +43,8 @@ class PaymentService
             throw new \RuntimeException('Se requiere un cliente para pagos a crédito.');
         }
 
-        return DB::transaction(function () use ($order, $payments, $userId, $customerId, $orderTotal, $totalPaid, $creditTotal) {
-            $change  = round($totalPaid - $orderTotal, 2);
+        return DB::transaction(function () use ($order, $payments, $userId, $customerId, $orderTotal, $alreadyPaid, $remaining, $totalPaid, $creditTotal) {
+            $change  = round($totalPaid - $remaining, 2);
             $paidAt  = Carbon::now();
             $records = [];
             $changeAssigned = false;
@@ -72,17 +76,22 @@ class PaymentService
                 $customer->increment('balance', $creditTotal);
             }
 
+            $newTotalPaid = round($alreadyPaid + $totalPaid, 2);
+            $fullyPaid    = $newTotalPaid >= $orderTotal - 0.005;
+
             $order->update([
-                'status'      => 'paid',
-                'paid_at'     => $paidAt,
+                'status'      => $fullyPaid ? 'paid' : $order->status,
+                'paid_at'     => $fullyPaid ? $paidAt : $order->paid_at,
                 'customer_id' => $customerId ?? $order->customer_id,
             ]);
 
             return [
-                'payments'      => $records,
-                'total_paid'    => round($totalPaid, 2),
-                'change_amount' => $change,
-                'paid_at'       => $paidAt,
+                'payments'         => $records,
+                'total_paid'       => round($totalPaid, 2),
+                'change_amount'    => $change,
+                'paid_at'          => $paidAt,
+                'order_fully_paid' => $fullyPaid,
+                'remaining'        => $fullyPaid ? 0.0 : round($orderTotal - $newTotalPaid, 2),
             ];
         });
     }
